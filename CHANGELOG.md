@@ -1,5 +1,17 @@
 # Overview
 
+## 0.2.2
+
+### New Features
+
+* Add javascript_pack_tag and stylesheet_pack_tag
+
+## 0.2.1
+
+* Upgrade dependency versions.
+* Resolve Rails deprecation notices
+* Update translation filter for ActionView 6.x
+
 ## 0.2.0
 
 ### Resolved Issues
