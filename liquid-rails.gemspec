@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description   = %q{It allows you to render .liquid templates with layout and partial support. It also provides filters, tags, drops class to be used inside your liquid template.}
   spec.homepage      = ''
   spec.license       = 'MIT'
-  spec.required_ruby_version     = '>= 2.0.0'
+  spec.required_ruby_version     = '>= 2.5.0'
   spec.required_rubygems_version = '>= 1.8.11'
 
   spec.files         = `git ls-files -z`.split("\x0")
@@ -21,6 +21,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'rails',    ">= 6.0.3"
-  spec.add_dependency 'liquid',   '~> 4.0.0'
+  spec.add_dependency 'liquid',   '>= 4.0.0'
   spec.add_dependency 'kaminari', '~> 1.2.1'
 end
