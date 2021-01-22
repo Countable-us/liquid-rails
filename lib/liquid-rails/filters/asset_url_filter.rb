@@ -3,7 +3,6 @@ module Liquid
     module AssetUrlFilter
       delegate \
                 :asset_path,
-                :asset_url,
 
                 :audio_path,
                 :audio_url,
@@ -24,6 +23,12 @@ module Liquid
                 :video_url,
 
                 to: :__h__
+
+      def asset_url(filename)
+        @context.registers[:view].rails_blob_url(
+          Current.site.assets.blobs.find_by(filename: filename)
+        )
+      end
 
       private
 

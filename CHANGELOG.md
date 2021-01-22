@@ -1,5 +1,11 @@
 # Overview
 
+## 0.2.3
+
+### Breaking Changes
+
+* Update `asset_url` to point to current site's assets
+
 ## 0.2.2
 
 ### New Features
