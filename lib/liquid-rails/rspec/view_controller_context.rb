@@ -5,14 +5,23 @@ module Liquid
         extend ActiveSupport::Concern
 
         def setup_view_and_controller
-          @view                 = ActionView::Base.new
-          @controller           = ActionController::Base.new
-          @request              = ActionDispatch::TestRequest.new({'PATH_INFO' => '/'})
-          @response             = ActionDispatch::TestResponse.new
-          @response.request     = @request
-          @controller.request   = @request
-          @controller.response  = @response
-          @controller.params    = {}
+          if ::Rails::VERSION::MAJOR >= 6
+            @controller = ActionController::Base.new
+            @view = ActionView::Base.new(
+              ActionView::LookupContext.new(ActionController::Base.view_paths),
+              {},
+              @controller
+            )
+          else
+            @view = ActionView::Base.new
+            @controller = ActionController::Base.new
+          end
+          @request = ActionDispatch::TestRequest.new({'PATH_INFO' => '/'})
+          @response = ActionDispatch::TestResponse.new
+          @response.request = @request
+          @controller.request = @request
+          @controller.response = @response
+          @controller.params = {}
           @view.assign_controller(@controller)
           @view.class.send(:include, @controller._helpers)
           @view.class.send(:include, ::Rails.application.routes.url_helpers)
