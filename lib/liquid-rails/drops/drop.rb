@@ -71,6 +71,8 @@ module Liquid
             association = object.send(attr)
             return nil if association.nil?
 
+            options[:current_user] = current_user
+
             drop_instance = Liquid::Rails::Drop.dropify(association, options)
             instance_variable_set("@_#{attr}", drop_instance)
           end

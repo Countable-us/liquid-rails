@@ -29,8 +29,9 @@ module Liquid
       delegate :total_count, :total_pages, to: :objects
 
       def initialize(objects, options={})
-        options.assert_valid_keys(:with, :scope)
+        options.assert_valid_keys(:current_user, :with, :scope)
 
+        @current_user    = options[:current_user]
         @objects         = options[:scope].nil? ? objects : objects.send(options[:scope])
         @drop_class_name = options[:with]
       end
@@ -44,7 +45,7 @@ module Liquid
       end
 
       def dropped_collection
-        @dropped_collection ||= @objects.map { |item| drop_item(item) }
+        @dropped_collection ||= @objects.map { |item| drop_item(item, current_user: @current_user) }
       end
 
       def kind_of?(klass)
@@ -82,9 +83,9 @@ module Liquid
           @drop_class ||= @drop_class_name.is_a?(String) ? @drop_class_name.safe_constantize : @drop_class_name
         end
 
-        def drop_item(item)
+        def drop_item(item, options={})
           liquid_drop_class = drop_class || item.drop_class
-          liquid_drop_class.new(item)
+          liquid_drop_class.new(item, options)
         end
     end
   end
