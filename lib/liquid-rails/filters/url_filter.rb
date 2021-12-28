@@ -1,6 +1,19 @@
 module Liquid
   module Rails
     module UrlFilter
+      def active_link_to(name, url, options={})
+        # active_link_to gem only checks for symbolized keys and this is easier
+        # than forking the gem, although we could move it into /lib
+        options = options.deep_symbolize_keys
+
+        # active_link_to gem expects the following values of :active to be symbols
+        case options[:active]
+        when "exclusive", "inclusive", "exact"
+          options[:active] = options[:active].to_sym
+        end
+
+        @context.registers[:view].active_link_to(name, url.to_s, options)
+      end
 
       def link_to(name, url, options={})
         @context.registers[:view].link_to(name, url.to_s, options)
