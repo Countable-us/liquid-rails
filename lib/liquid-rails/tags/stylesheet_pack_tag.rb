@@ -6,7 +6,7 @@ module Liquid
       end
 
       def render(context)
-        context.registers[:view].stylesheet_pack_tag(@name, 'data-turbolinks-track': 'reload')
+        context.registers[:view].stylesheet_pack_tag(@name, 'data-turbo-track': 'reload')
       end
     end
   end
