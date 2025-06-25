@@ -26,7 +26,7 @@ module Liquid
 
       array_methods = Array.instance_methods - Object.instance_methods
       delegate *array_methods, to: :dropped_collection
-      delegate :total_count, :total_pages, to: :objects
+      delegate :count, :total_count, :total_pages, to: :objects
 
       def initialize(objects, options={})
         options.assert_valid_keys(:current_user, :with, :scope)
