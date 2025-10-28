@@ -22,4 +22,4 @@ module Liquid
   end
 end
 
-Liquid::Template.register_filter(Liquid::Rails::AssetTagFilter)
+Liquid::Rails.register_filter(Liquid::Rails::AssetTagFilter)

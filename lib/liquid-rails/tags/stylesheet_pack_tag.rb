@@ -12,4 +12,4 @@ module Liquid
   end
 end
 
-Liquid::Template.register_tag('stylesheet_pack_tag', Liquid::Rails::StylesheetPackTag)
+Liquid::Rails.register_tag('stylesheet_pack_tag', Liquid::Rails::StylesheetPackTag)

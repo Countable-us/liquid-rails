@@ -5,6 +5,29 @@ require 'active_support/concern'
 
 module Liquid
   module Rails
+    class << self
+      def environment
+        return unless defined?(::Liquid::Environment)
+        @environment ||= ::Liquid::Environment.new
+      end
+
+      def register_filter(filter)
+        if environment
+          environment.register_filter(filter)
+        else
+          ::Liquid::Template.register_filter(filter)
+        end
+      end
+
+      def register_tag(name, tag)
+        if environment
+          environment.register_tag(name, tag)
+        else
+          ::Liquid::Template.register_tag(name, tag)
+        end
+      end
+    end
+
     autoload :TemplateHandler,  'liquid-rails/template_handler'
     autoload :FileSystem,       'liquid-rails/file_system'
 

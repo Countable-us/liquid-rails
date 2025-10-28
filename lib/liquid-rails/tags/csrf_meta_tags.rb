@@ -8,4 +8,4 @@ module Liquid
   end
 end
 
-Liquid::Template.register_tag('csrf_meta_tags', Liquid::Rails::CsrfMetaTags)
+Liquid::Rails.register_tag('csrf_meta_tags', Liquid::Rails::CsrfMetaTags)

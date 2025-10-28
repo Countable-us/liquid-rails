@@ -69,9 +69,9 @@ module Liquid
 
         @context.registers[:view].content_for(@identifier).try(:html_safe)
       end
-    end
+end
   end
 end
 
-Liquid::Template.register_tag('content_for', Liquid::Rails::ContentForTag)
-Liquid::Template.register_tag('yield', Liquid::Rails::YieldTag)
+Liquid::Rails.register_tag('content_for', Liquid::Rails::ContentForTag)
+Liquid::Rails.register_tag('yield', Liquid::Rails::YieldTag)

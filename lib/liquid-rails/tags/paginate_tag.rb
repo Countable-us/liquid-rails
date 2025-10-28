@@ -115,4 +115,4 @@ module Liquid
   end
 end
 
-Liquid::Template.register_tag('paginate', Liquid::Rails::PaginateTag)
+Liquid::Rails.register_tag('paginate', Liquid::Rails::PaginateTag)

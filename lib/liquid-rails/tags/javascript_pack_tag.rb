@@ -12,4 +12,4 @@ module Liquid
   end
 end
 
-Liquid::Template.register_tag('javascript_pack_tag', Liquid::Rails::JavascriptPackTag)
+Liquid::Rails.register_tag('javascript_pack_tag', Liquid::Rails::JavascriptPackTag)

@@ -21,4 +21,4 @@ module Liquid
   end
 end
 
-Liquid::Template.register_filter(Liquid::Rails::NumberFilter)
+Liquid::Rails.register_filter(Liquid::Rails::NumberFilter)

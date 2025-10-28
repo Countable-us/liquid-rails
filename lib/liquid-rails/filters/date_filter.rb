@@ -16,4 +16,4 @@ module Liquid
   end
 end
 
-Liquid::Template.register_filter(Liquid::Rails::DateFilter)
+Liquid::Rails.register_filter(Liquid::Rails::DateFilter)
