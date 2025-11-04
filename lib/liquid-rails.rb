@@ -8,7 +8,7 @@ module Liquid
     class << self
       def environment
         return unless defined?(::Liquid::Environment)
-        @environment ||= ::Liquid::Environment.new
+        @environment ||= ::Liquid::Environment.default
       end
 
       def register_filter(filter)
