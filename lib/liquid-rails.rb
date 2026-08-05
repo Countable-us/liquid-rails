@@ -1,7 +1,16 @@
 require "liquid-rails/version"
 require "liquid"
-require "active_support/concern"
 require "digest/sha2"
+
+require "active_support"
+require "active_support/concern"
+require "active_support/core_ext/hash/keys"
+require "active_support/core_ext/module/delegation"
+require "active_support/core_ext/string/output_safety"
+require "action_controller"
+require "action_view"
+require "action_view/helpers"
+require "rails/railtie"
 
 require "liquid-rails/configuration"
 
@@ -89,4 +98,4 @@ module Liquid
   end
 end
 
-require "liquid-rails/railtie" if defined?(Rails)
+require "liquid-rails/railtie"
