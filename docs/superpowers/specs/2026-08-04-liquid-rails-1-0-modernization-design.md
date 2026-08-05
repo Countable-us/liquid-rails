@@ -1,6 +1,6 @@
 # Liquid Rails 1.0 Modernization Design
 
-**Status:** Design approved; written specification pending review
+**Status:** Approved
 
 **Repositories:**
 
