@@ -32,6 +32,30 @@ end
 class Profile < Model
 end
 
+class PaginatedComments
+  include Enumerable
+
+  def initialize(items)
+    @items = items
+  end
+
+  def each(&block)
+    @items.each(&block)
+  end
+
+  def approved
+    self
+  end
+
+  def page(_number)
+    self
+  end
+
+  def per(_number)
+    self
+  end
+end
+
 class ProfileDrop < Liquid::Rails::Drop
   attributes :name, :description
 end
@@ -55,4 +79,6 @@ ReProfileDrop = Class.new(Liquid::Rails::Drop)
 PostsDrop     = Class.new(Liquid::Rails::CollectionDrop)
 RePostDrop    = Class.new(Liquid::Rails::Drop)
 ReCommentDrop = Class.new(Liquid::Rails::Drop)
-CommentsDrop  = Class.new(Liquid::Rails::CollectionDrop)
+CommentsDrop  = Class.new(Liquid::Rails::CollectionDrop) do
+  scope :approved
+end

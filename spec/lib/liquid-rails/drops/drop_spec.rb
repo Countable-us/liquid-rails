@@ -85,6 +85,15 @@ module Liquid
           it '#recomments returns as ReCommentDrop object' do
             expect(@post_drop.recomments[0]).to be_instance_of(::ReCommentDrop)
           end
+
+          it 'does not mutate association declaration options across instances' do
+            first = PostDrop.new(@post, current_user: 'first')
+            second = PostDrop.new(@post, current_user: 'second')
+
+            expect(first.comments.first.current_user).to eq('first')
+            expect(second.comments.first.current_user).to eq('second')
+            expect(PostDrop._associations[:comments][:options]).not_to have_key(:current_user)
+          end
         end
 
         context 'belongs_to' do
@@ -112,6 +121,14 @@ module Liquid
           it 'returns hash of attributes' do
             expect(profile_drop.to_json).to eq(%|{"name":"Name 1","description":"Description 1"}|)
           end
+        end
+
+        it 'preserves options through scopes and pagination' do
+          relation = PaginatedComments.new([@comment])
+          collection = CommentsDrop.new(relation, current_user: 'viewer', with: 'CommentDrop')
+
+          expect(collection.approved.first.current_user).to eq('viewer')
+          expect(collection.page(2).per(5).first.current_user).to eq('viewer')
         end
       end
     end

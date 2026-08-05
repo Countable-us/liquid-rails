@@ -58,7 +58,7 @@ module Liquid
       end
 
       def self.associate(type, attrs)
-        options = attrs.extract_options!
+        declaration_options = attrs.extract_options!.to_h.dup.freeze
         self._associations = _associations.dup
 
         attrs.each do |attr|
@@ -71,19 +71,23 @@ module Liquid
             association = object.send(attr)
             return nil if association.nil?
 
-            options[:current_user] = current_user
-
-            drop_instance = Liquid::Rails::Drop.dropify(association, options)
+            association_options = options.merge(declaration_options)
+            drop_instance = Liquid::Rails::Drop.dropify(association, association_options)
             instance_variable_set("@_#{attr}", drop_instance)
           end
 
-          self._associations[attr] = { type: type, options: options }
+          self._associations[attr] = { type: type, options: declaration_options }
         end
       end
 
       # Wraps an object in a new instance of the drop.
       def initialize(object, options={})
         @object = object
+        @options = options.to_h.dup.freeze
+      end
+
+      def current_user
+        options[:current_user]
       end
 
       def attributes
@@ -110,7 +114,7 @@ module Liquid
 
       protected
 
-        attr_reader :object
+        attr_reader :object, :options
     end
   end
 end
