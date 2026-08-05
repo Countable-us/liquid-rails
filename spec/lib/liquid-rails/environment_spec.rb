@@ -44,43 +44,71 @@ RSpec.describe Liquid::Rails, :environment_isolation do
     described_class.remove_instance_variable(:@environment_generation) if described_class.instance_variable_defined?(:@environment_generation)
     worker_entries = Queue.new
     worker_releases = Queue.new
+    worker_progress = Queue.new
     builder_entries = Queue.new
     builder_releases = Queue.new
+    contested_points = Queue.new
     builder_calls = 0
     builder_calls_lock = Mutex.new
     original_environment = described_class.method(:environment)
     original_builder = described_class.method(:build_environment)
+    environment_mutex = described_class.const_get(:ENVIRONMENT_MUTEX) if described_class.const_defined?(:ENVIRONMENT_MUTEX)
+    original_synchronize = environment_mutex&.method(:synchronize)
 
     described_class.define_singleton_method(:environment) do
-      worker_entries << true
+      worker = Thread.current[:environment_worker]
+      worker_entries << worker
       worker_releases.pop
+      worker_progress << worker
       original_environment.call
     end
     described_class.define_singleton_method(:build_environment) do |error_mode:|
       builder_calls_lock.synchronize { builder_calls += 1 }
-      builder_entries << true
+      worker = Thread.current[:environment_worker]
+      builder_entries << worker
+      contested_points << worker unless environment_mutex
       builder_releases.pop
       original_builder.call(error_mode:)
     end
+    environment_mutex&.define_singleton_method(:synchronize) do |&block|
+      contested_points << Thread.current[:environment_worker]
+      original_synchronize.call(&block)
+    end
 
+    first = nil
+    second = nil
     begin
       Timeout.timeout(5) do
-        first = Thread.new { described_class.environment }
-        second = Thread.new { described_class.environment }
+        first = Thread.new do
+          Thread.current[:environment_worker] = :first
+          described_class.environment
+        end
+        second = Thread.new do
+          Thread.current[:environment_worker] = :second
+          described_class.environment
+        end
 
-        2.times { worker_entries.pop }
+        expect([worker_entries.pop, worker_entries.pop]).to contain_exactly(:first, :second)
         worker_releases << true
-        builder_entries.pop
+        expect(worker_progress.pop).to eq(:first)
+        expect(builder_entries.pop).to eq(:first)
+        expect(contested_points.pop).to eq(:first)
         worker_releases << true
-        2.times { builder_releases << true }
+        expect(worker_progress.pop).to eq(:second)
+        expect(contested_points.pop).to eq(:second)
+
+        expect(builder_calls).to eq(1)
+        builder_releases << true
         first_environment = first.value
         second_environment = second.value
 
-        expect(builder_calls).to eq(1)
         expect(first_environment).to equal(second_environment)
-        expect(described_class.environment_state.environment).to equal(first_environment)
+        expect(original_environment.call).to equal(first_environment)
       end
     ensure
+      2.times { builder_releases << true }
+      [first, second].compact.each(&:join)
+      environment_mutex&.define_singleton_method(:synchronize, original_synchronize)
       described_class.define_singleton_method(:environment, original_environment)
       described_class.define_singleton_method(:build_environment, original_builder)
     end
