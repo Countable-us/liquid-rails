@@ -33,9 +33,10 @@ require 'liquid-rails/environment'
 
 module Liquid
   module Rails
-    class << self
-      attr_reader :environment_generation
+    EnvironmentState = Struct.new(:environment, :generation)
+    ENVIRONMENT_MUTEX = Mutex.new
 
+    class << self
       def configuration
         @configuration ||= Configuration.new
       end
@@ -46,16 +47,29 @@ module Liquid
       end
 
       def environment
-        return @environment if @environment
+        environment_state.environment
+      end
 
-        self.environment = build_environment(error_mode: :strict)
+      def environment_generation
+        ENVIRONMENT_MUTEX.synchronize { @environment_state&.generation }
+      end
+
+      def environment_state
+        ENVIRONMENT_MUTEX.synchronize do
+          @environment_state ||= install_environment(build_environment(error_mode: :strict))
+        end
       end
 
       def environment=(environment)
         raise ArgumentError, "expected Liquid::Environment" unless environment.is_a?(::Liquid::Environment)
 
-        @environment = environment
-        @environment_generation = environment_generation.to_i + 1
+        ENVIRONMENT_MUTEX.synchronize { @environment_state = install_environment(environment) }
+      end
+
+      private
+
+      def install_environment(environment)
+        EnvironmentState.new(environment, @environment_state&.generation.to_i + 1).freeze
       end
     end
 
