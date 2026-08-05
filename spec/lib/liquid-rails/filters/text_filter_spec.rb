@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 class TextFilterKlass
   include Liquid::Rails::TextFilter
@@ -8,6 +8,12 @@ module Liquid
   module Rails
     describe TextFilter do
       subject { TextFilterKlass.new }
+
+      it "keeps only Rails text helpers" do
+        expect(described_class.instance_methods(false)).to contain_exactly(
+          :highlight, :excerpt, :pluralize, :word_wrap, :simple_format
+        )
+      end
 
       it { should delegate(:highlight).to(:__h__) }
       it { should delegate(:excerpt).to(:__h__) }

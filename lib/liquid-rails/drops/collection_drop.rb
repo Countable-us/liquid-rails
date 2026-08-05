@@ -1,7 +1,6 @@
 module Liquid
   module Rails
     class CollectionDrop < ::Liquid::Drop
-
       class ArrayPagination
         include Enumerable
 
@@ -60,11 +59,11 @@ module Liquid
 
         private
 
-          def paged_items
-            return @items unless @per
+        def paged_items
+          return @items unless @per
 
-            @items.slice((@page - 1) * @per, @per) || []
-          end
+          @items.slice((@page - 1) * @per, @per) || []
+        end
       end
 
       class << self
@@ -93,7 +92,7 @@ module Liquid
         drop.__send__(:objects)
       end
 
-      def initialize(objects, options={})
+      def initialize(objects, options = {})
         @options = options.to_h.dup.freeze
         @objects = self.options[:scope].nil? ? objects : objects.public_send(self.options[:scope])
         @drop_class_name = self.options[:with]
@@ -192,18 +191,18 @@ module Liquid
 
       protected
 
-        attr_reader :objects, :options
+      attr_reader :objects, :options
 
-        def drop_class
-          @drop_class ||= @drop_class_name.is_a?(String) ? @drop_class_name.safe_constantize : @drop_class_name
-        end
+      def drop_class
+        @drop_class ||= @drop_class_name.is_a?(String) ? @drop_class_name.safe_constantize : @drop_class_name
+      end
 
-        def drop_item(item, options={})
-          return if item.nil?
+      def drop_item(item, options = {})
+        return if item.nil?
 
-          liquid_drop_class = drop_class || item.drop_class
-          liquid_drop_class.new(item, options)
-        end
+        liquid_drop_class = drop_class || item.drop_class
+        liquid_drop_class.new(item, options)
+      end
     end
   end
 end

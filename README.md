@@ -71,7 +71,6 @@ Currently, **Liquid-Rails** adds only the followings:
 6. [TextFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/text_filter.rb)
 7. [TranslateFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/translate_filter.rb)
 8. [UrlFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/url_filter.rb)
-9. [MiscFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/misc_filter.rb)
 
 ### Tag
 
@@ -80,10 +79,9 @@ Currently, **Liquid-Rails** adds only the followings:
 Currently, **Liquid-Rails** adds only the followings:
 
 1. [csrf_meta_tags](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/csrf_meta_tags.rb)
-2. [google_analytics_tag](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/google_analytics_tag.rb)
-3. [javascript_tag](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/javascript_tag.rb)
-4. [paginate](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/paginate_tag.rb)
-4. [content_for](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/content_for.rb)
+2. [javascript_tag](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/javascript_tag.rb)
+3. [content_for](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/content_for_tag.rb)
+4. [yield](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/content_for_tag.rb)
 
 ### Drop Class
 

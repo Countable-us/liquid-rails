@@ -3,7 +3,7 @@ module Liquid
     module Droppable
       extend ActiveSupport::Concern
 
-      def to_liquid(options={})
+      def to_liquid(options = {})
         drop_class.new(self, options)
       end
       alias_method :dropify, :to_liquid
@@ -14,7 +14,7 @@ module Liquid
 
       module ClassMethods
         def drop_class
-          "#{self.name}Drop".safe_constantize
+          "#{name}Drop".safe_constantize
         end
       end
     end

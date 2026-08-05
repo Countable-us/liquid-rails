@@ -6,11 +6,11 @@ class PagesController < ApplicationController
 
   private
 
-    def liquid_filters
-      []
-    end
+  def liquid_filters
+    []
+  end
 
-    def set_book
-      @book = { 'name' => 'Liquid on Rails' }
-    end
+  def set_book
+    @book = {"name" => "Liquid on Rails"}
+  end
 end

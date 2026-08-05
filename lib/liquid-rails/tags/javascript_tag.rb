@@ -13,7 +13,7 @@ module Liquid
       include ActionView::Helpers::TagHelper
 
       def render(context)
-        javascript_tag(super, type: 'text/javascript')
+        javascript_tag(super, type: "text/javascript")
       end
     end
   end

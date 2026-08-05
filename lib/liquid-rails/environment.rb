@@ -4,10 +4,7 @@ module Liquid
       AssetTagFilter,
       AssetUrlFilter,
       DateFilter,
-      GoogleStaticMapUrlFilter,
-      MiscFilter,
       NumberFilter,
-      PaginateFilter,
       SanitizeFilter,
       TextFilter,
       TranslateFilter,
@@ -18,11 +15,7 @@ module Liquid
       "content_for" => ContentForTag,
       "yield" => YieldTag,
       "csrf_meta_tags" => CsrfMetaTags,
-      "google_analytics_tag" => GoogleAnalyticsTag,
-      "javascript_pack_tag" => JavascriptPackTag,
-      "javascript_tag" => JavascriptTag,
-      "paginate" => PaginateTag,
-      "stylesheet_pack_tag" => StylesheetPackTag
+      "javascript_tag" => JavascriptTag
     }.freeze
 
     class << self

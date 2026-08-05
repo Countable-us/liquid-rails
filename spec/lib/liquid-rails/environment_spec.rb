@@ -30,6 +30,25 @@ RSpec.describe Liquid::Rails, :environment_isolation do
     expect(default_template.render({}, registers: {view: helper})).to eq("1234")
   end
 
+  it "exposes only generic default filters and tags" do
+    expect(described_class::DEFAULT_FILTERS).to contain_exactly(
+      Liquid::Rails::AssetTagFilter,
+      Liquid::Rails::AssetUrlFilter,
+      Liquid::Rails::DateFilter,
+      Liquid::Rails::NumberFilter,
+      Liquid::Rails::SanitizeFilter,
+      Liquid::Rails::TextFilter,
+      Liquid::Rails::TranslateFilter,
+      Liquid::Rails::UrlFilter
+    )
+    expect(described_class::DEFAULT_TAGS).to eq(
+      "content_for" => Liquid::Rails::ContentForTag,
+      "yield" => Liquid::Rails::YieldTag,
+      "csrf_meta_tags" => Liquid::Rails::CsrfMetaTags,
+      "javascript_tag" => Liquid::Rails::JavascriptTag
+    )
+  end
+
   it "increments the generation when installing an environment" do
     generation = described_class.environment_generation
 

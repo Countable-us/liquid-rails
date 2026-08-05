@@ -1,20 +1,20 @@
 class Model
   include Liquid::Rails::Droppable
 
-  def initialize(hash={})
+  def initialize(hash = {})
     @attributes = hash
   end
 
   def id
-    @attributes[:id] || @attributes['id'] || object_id
+    @attributes[:id] || @attributes["id"] || object_id
   end
 
-  def respond_to?(method, include_private=false)
+  def respond_to?(method, include_private = false)
     return true if @attributes.key?(method)
     super
   end
 
-  def respond_to_missing?(method, include_private=false)
+  def respond_to_missing?(method, include_private = false)
     @attributes.key?(method) || super
   end
 
@@ -60,25 +60,25 @@ class ProfileDrop < Liquid::Rails::Drop
   attributes :name, :description
 end
 
-Post    = Class.new(Model)
+Post = Class.new(Model)
 Comment = Class.new(Model)
 
 PostDrop = Class.new(Liquid::Rails::Drop) do
   attributes :title, :body, :id
   has_many :comments
-  has_many :recomments, with: 'ReCommentDrop', class_name: 'CommentsDrop'
+  has_many :recomments, with: "ReCommentDrop", class_name: "CommentsDrop"
 end
 
 CommentDrop = Class.new(Liquid::Rails::Drop) do
   attributes :id, :body
   belongs_to :post
-  belongs_to :repost, class_name: 'RePostDrop'
+  belongs_to :repost, class_name: "RePostDrop"
 end
 
 ReProfileDrop = Class.new(Liquid::Rails::Drop)
-PostsDrop     = Class.new(Liquid::Rails::CollectionDrop)
-RePostDrop    = Class.new(Liquid::Rails::Drop)
+PostsDrop = Class.new(Liquid::Rails::CollectionDrop)
+RePostDrop = Class.new(Liquid::Rails::Drop)
 ReCommentDrop = Class.new(Liquid::Rails::Drop)
-CommentsDrop  = Class.new(Liquid::Rails::CollectionDrop) do
+CommentsDrop = Class.new(Liquid::Rails::CollectionDrop) do
   scope :approved
 end

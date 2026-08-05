@@ -30,9 +30,5 @@ module Liquid
 end
 
 RSpec.configure do |config|
-  if RSpec::Core::Version::STRING.starts_with?('3')
-    config.include Liquid::Rails::Rspec::DropExampleGroup, type: :drop, file_path: %r(spec/drops)
-  else
-    config.include Liquid::Rails::Rspec::DropExampleGroup, type: :drop, example_group: { file_path: %r{spec/drops} }
-  end
+  config.include Liquid::Rails::Rspec::DropExampleGroup, type: :drop, file_path: %r{spec/drops}
 end

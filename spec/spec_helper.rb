@@ -1,18 +1,18 @@
 # Configure Rails Environment
-ENV['RAILS_ENV'] = 'test'
+ENV["RAILS_ENV"] = "test"
 
-require File.expand_path('../dummy/config/environment.rb',  __FILE__)
-require 'liquid-rails'
-require 'rspec/rails'
-require 'capybara/rspec'
-require 'liquid-rails/matchers'
+require File.expand_path("../dummy/config/environment.rb", __FILE__)
+require "liquid-rails"
+require "rspec/rails"
+require "capybara/rspec"
+require "liquid-rails/matchers"
 
 Liquid::Rails.environment = Liquid::Rails.build_environment(error_mode: :strict)
 
 Rails.backtrace_cleaner.remove_silencers!
 
 # Load support files
-require 'fixtures/poro'
+require "fixtures/poro"
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }
 
 RSpec.configure do |config|
