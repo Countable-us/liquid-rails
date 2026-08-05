@@ -80,7 +80,7 @@ module Liquid
 
         scope_names.each do |scope_name|
           define_method(scope_name) do
-            raise ArgumentError, "#{objects.class.name} doesn't define scope: #{scope_name}" unless objects.respond_to?(scope_name)
+            raise ::ArgumentError, "#{objects.class.name} doesn't define scope: #{scope_name}" unless objects.respond_to?(scope_name)
 
             self.class.new(objects.public_send(scope_name), options)
           end
@@ -88,7 +88,7 @@ module Liquid
       end
 
       def self.unwrap(drop)
-        raise ArgumentError, "expected CollectionDrop" unless drop.is_a?(CollectionDrop)
+        raise ::ArgumentError, "expected CollectionDrop" unless drop.is_a?(CollectionDrop)
 
         drop.__send__(:objects)
       end

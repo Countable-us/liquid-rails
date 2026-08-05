@@ -67,6 +67,18 @@ RSpec.describe Liquid::Rails::CollectionDrop do
     expect(drop['objects']).to be_nil
   end
 
+  it 'raises Ruby ArgumentError when unwrapping a non-collection' do
+    expect { described_class.unwrap(Object.new) }
+      .to raise_error(::ArgumentError, 'expected CollectionDrop')
+  end
+
+  it 'raises Ruby ArgumentError when a declared scope is missing on the source' do
+    collection = CommentsDrop.new([])
+
+    expect { collection.approved }
+      .to raise_error(::ArgumentError, /doesn't define scope/)
+  end
+
   it 'paginates arrays without exposing their methods to Liquid' do
     drop = described_class.new(
       [Profile.new(name: 'One'), Profile.new(name: 'Two')],
