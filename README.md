@@ -1,148 +1,104 @@
-[![Build Status](https://travis-ci.org/chamnap/liquid-rails.svg?branch=master)](https://travis-ci.org/yoolk/liquid-rails)[![Coverage Status](https://coveralls.io/repos/yoolk/liquid-rails/badge.png?branch=master)](https://coveralls.io/r/yoolk/liquid-rails?branch=master)[![Gem Version](https://badge.fury.io/rb/liquid-rails.svg)](http://badge.fury.io/rb/liquid-rails)
-# Liquid-Rails
+# Liquid Rails
 
-It allows you to render `.liquid` templates with layout and partial support. It also provides filters, tags, drops class to be used inside your liquid template.
+Liquid Rails renders `.liquid` templates through Rails' Action View stack. Version 1.0 provides an application-scoped Liquid environment, explicit render policy, safe Drops, and a bounded parsed-template cache.
+
+## Compatibility
+
+Liquid Rails 1.0 supports Ruby `>= 3.3`, Rails `>= 8.0, < 8.2`, and Liquid `>= 5.13, < 6`.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Add the gem to your application:
 
-    gem 'liquid-rails'
+```ruby
+gem "liquid-rails", "~> 1.0"
+```
 
-And then execute:
+Then run `bundle install`. Rails registers `.liquid` as an Action View template handler, so layouts, partials, and regular templates can use the extension:
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install liquid-rails
-
-## Usage
-
-In order to render with layout, in your layout file `app/views/layouts/application.liquid`, put this:
-
-```html
+```liquid
 {{ content_for_layout }}
+{% include "shared/header" %}
 ```
 
-```html
-# It will render app/views/home/_partial.liquid when the current controller is `HomeController`.
-{% include 'partial' %}
+## Configure rendering and extensions
 
-# It will render app/views/shared/_partial.liquid.
-{% include 'shared/partial' %}
-```
-
-### Template Rendering
-
-By default, **Liquid-Rails** makes all instance variables from controller available to liquid template. To limit only some instance variables, do this inside your controller:
+Liquid extensions belong to an application environment, not Liquid's global default environment. Configure render policy and build a fresh environment during each Rails prepare pass:
 
 ```ruby
-def liquid_assigns
-  { 'listing' => current_listing, 'content_for_header' => content_for_header, 'current_account' => current_account }
+Liquid::Rails.configure do |config|
+  config.render_errors = :raise
+  config.cache_size = 1_000
+  config.cache_namespace = ->(view) { view.liquid_registers[:site_id] }
+end
+
+Rails.application.config.to_prepare do
+  environment = Liquid::Rails.build_environment(error_mode: :strict) do |liquid|
+    liquid.register_filter(MyApplicationFilter)
+    liquid.register_tag("my_tag", MyApplicationTag)
+  end
+  Liquid::Rails.environment = environment
 end
 ```
 
-By default, **Liquid-Rails** makes all your helper methods inside your rails app available to liquid template. To limit only some helpers, do this inside your controller:
+`Liquid::Rails.build_environment` includes the supported generic Rails filters and tags. The block is the place to register application-specific filters and tags. Assigning `Liquid::Rails.environment` atomically installs the completed environment and advances its generation, so subsequent renders parse against the new extension set.
+
+Do not use `Liquid::Template.register_filter`, `Liquid::Template.register_tag`, or mutate `Liquid::Environment.default`; 1.0 does not use global registration.
+
+### Render inputs and errors
+
+The handler builds fresh assigns and registers for every render. A view may provide application registers with `liquid_registers`:
 
 ```ruby
-def liquid_filters
-  []
+def liquid_registers
+  { site_id: current_site.id.to_s, resources: Liquid::ResourceRegistry.new(site: current_site) }.freeze
 end
 ```
 
-You can render liquid templates from other template engines, eg. `erb`, `haml`, ...
+The gem adds its own `:view`, `:controller`, `:helpers`, and `:file_system` registers. Those reserved names override colliding application-provided names. Treat assigns and registers as input: Liquid Rails does not mutate the caller's hashes.
+
+`config.render_errors` accepts exactly two policies:
+
+- `:raise` calls Liquid's raising renderer (`render!`) and propagates Liquid errors. This is the default.
+- `:embed` calls Liquid's tolerant renderer (`render`) and returns Liquid's inline error output.
+
+The setting is explicit; rendering behavior does not change automatically with `Rails.env`.
+
+## Parsed-template caching
+
+Caching is disabled until `cache_namespace` returns a value. A `nil` namespace bypasses the cache; `false` is still a valid namespace. The default cache holds 1,000 parsed-template prototypes globally across all namespaces, and `cache_size` must be a positive integer.
+
+For tenant-aware applications, return an immutable tenant identifier such as `site_id`. A cache key contains the application namespace, installed environment generation, template identifier, virtual path, format, locale, and a SHA-256 digest of the complete source. This separates equal template paths and sources across tenants, invalidates entries after source changes, and re-parses after environment replacement.
+
+Only a parsed prototype is cached. The handler duplicates its template wrapper for every render; it never caches rendered output, assigns, Drops, records, controllers, views, or register hashes. Custom tags must likewise be render-reentrant: parsed tag instances are shared through a cached prototype, so keep per-render state in local variables and Liquid context registers rather than tag instance variables.
+
+## Drops and collections
+
+Models opt in explicitly; Liquid Rails does not inject behavior into an ORM base class:
 
 ```ruby
-= render 'shared/partial.liquid'
-```
+class Product < ApplicationRecord
+  include Liquid::Rails::Droppable
+end
 
-### Filter
-
-> Filters are simple methods that modify the output of numbers, strings, variables and objects. They are placed within an output tag `{{` `}}` and are separated with a pipe character `|`.
-
-Currently, **Liquid-Rails** adds only the followings:
-
-1. [AssetTagFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/asset_tag_filter.rb)
-2. [AssetUrlFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/asset_url_filter.rb)
-3. [DateFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/date_filter.rb)
-4. [NumberFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/number_filter.rb)
-5. [SanitizeFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/sanitize_filter.rb)
-6. [TextFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/text_filter.rb)
-7. [TranslateFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/translate_filter.rb)
-8. [UrlFilter](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/filters/url_filter.rb)
-
-### Tag
-
-> Liquid tags are the programming logic that tells templates what to do. Tags are wrapped in: `{%` `%}`.
-
-Currently, **Liquid-Rails** adds only the followings:
-
-1. [csrf_meta_tags](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/csrf_meta_tags.rb)
-2. [javascript_tag](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/javascript_tag.rb)
-3. [content_for](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/content_for_tag.rb)
-4. [yield](https://github.com/yoolk/liquid-rails/blob/master/lib/liquid-rails/tags/content_for_tag.rb)
-
-### Drop Class
-
-> Drops let you provide the user with custom functionality. They are very much like a standard Ruby class, but have all unused and potentially dangerous methods removed. From the user's perspective a drop acts very much like a Hash, though methods are accessed with dot-notation as well as element selection. A drop method cannot be invoked with arguments. Drops are called just-in-time, thus allowing you to lazily load objects.
-
-Given two models, a Post(title: string, body: text) and a Comment(name:string, body:text, post_id:integer), you will have two drops:
-
-```ruby
-class PostDrop < Liquid::Rails::Drop
-  attributes :id, :title, :body
-
-  has_many :comments
+class ProductDrop < Liquid::Rails::Drop
+  attributes :id, :name
+  has_many :reviews
 end
 ```
 
-and
+`Liquid::Rails::Drop` copies its options and propagates them through declared associations. Use explicit `Drop` classes for objects that should be exposed to templates.
+
+`Liquid::Rails::CollectionDrop` deliberately exposes a small allowlist to Liquid: iteration, sliced loop loading, indexing, `first`, `last`, `count`, `size`/`length`, `empty?`, `page`, `per`, `total_count`, and `total_pages`, plus scopes declared with `.scope`. It does not dispatch arbitrary Ruby methods or expose its source collection to templates. Ruby integrations that need the underlying source may call `Liquid::Rails::CollectionDrop.unwrap(drop)`; it raises `ArgumentError` for anything other than a collection Drop.
+
+## Generic extensions
+
+The base environment registers generic Action View bridges for assets, URLs, translation, numbers, sanitization, dates, and text, together with `content_for`, `yield`, `csrf_meta_tags`, and `javascript_tag`. Application policy and vendor integrations—including tenant resources, navigation, and pagination—should be registered by the application environment.
+
+## Testing
+
+RSpec matchers are available to gem consumers:
 
 ```ruby
-class CommentDrop < Liquid::Rails::Drop
-  attributes :id, :name, :body
-
-  belongs_to :post
-end
+require "liquid-rails/matchers"
 ```
-
-Check out more [examples](https://github.com/yoolk/liquid-rails/blob/master/spec/fixtures/poro.rb).
-
-It works for any ORMs. The PORO should include `Liquid::Rails::Droppable`. That's all you need to do to have your POROs supported.
-
-### RSpec
-
-In spec_helper.rb, you'll need to require the matchers:
-
-```ruby
-require 'liquid-rails/matchers'
-```
-
-Example:
-
-```ruby
-describe PostDrop do
-  it { should have_attribute(:id) }
-  it { should have_attribute(:title) }
-  it { should have_attribute(:body) }
-  it { should have_many(:comments) }
-end
-```
-
-```ruby
-describe CommentDrop do
-  it { should have_attribute(:id) }
-  it { should have_attribute(:name) }
-  it { should have_attribute(:body) }
-  it { should belongs_to(:post) }
-end
-```
-
-## Contributors
-
-* [Radin Reth](https://github.com/radin-reth/)
-
-## Authors
-
-* [Chamnap Chhorn](https://github.com/chamnap)
