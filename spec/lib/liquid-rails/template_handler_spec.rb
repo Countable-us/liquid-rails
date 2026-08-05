@@ -113,3 +113,220 @@ describe 'Request', type: :feature do
     end
   end
 end
+
+class TemplateHandlerSpecController
+  attr_accessor :liquid_assigns, :liquid_filters
+
+  def initialize(assigns = {}, filters = [])
+    @liquid_assigns = assigns
+    @liquid_filters = filters
+  end
+end
+
+class TemplateHandlerSpecView
+  attr_reader :assigns, :controller, :liquid_registers, :lookup_context, :site_id
+
+  def initialize(controller:, assigns: {}, liquid_registers: {}, site_id: nil)
+    @assigns = assigns
+    @controller = controller
+    @liquid_registers = liquid_registers
+    @lookup_context = Struct.new(:locale).new(:en)
+    @site_id = site_id
+  end
+
+  def content_for?(_name)
+    false
+  end
+
+  def content_for(_name)
+    nil
+  end
+
+end
+
+module TemplateHandlerSpecErrorFilter
+  def raise_liquid_error(_input)
+    raise Liquid::Error, "expected render failure"
+  end
+end
+
+class TemplateHandlerSpecRegisterProbeTag < Liquid::Tag
+  class << self
+    attr_accessor :captures
+  end
+
+  def render(context)
+    self.class.captures << [context.registers.static.object_id, context.registers[:resources].object_id]
+    ""
+  end
+end
+
+RSpec.describe Liquid::Rails::TemplateHandler do
+  let(:configuration) { Liquid::Rails.configuration }
+  let(:controller) { TemplateHandlerSpecController.new }
+  let(:view) { TemplateHandlerSpecView.new(controller: controller) }
+  let(:handler) { described_class.new(view) }
+
+  before do
+    configuration.cache_namespace = nil
+    configuration.cache_size = 1_000
+    configuration.render_errors = :raise
+    Liquid::Rails.reset_template_cache! if Liquid::Rails.respond_to?(:reset_template_cache!)
+  end
+
+  after do
+    configuration.cache_namespace = nil
+    configuration.cache_size = 1_000
+    configuration.render_errors = :raise
+    Liquid::Rails.reset_template_cache! if Liquid::Rails.respond_to?(:reset_template_cache!)
+  end
+
+  it "does not mutate controller assigns or local assigns" do
+    controller_assigns = {"title" => "Original"}
+    local_assigns = {subtitle: "Local"}
+    controller.liquid_assigns = controller_assigns
+
+    expect(handler.render("{{ title }} {{ subtitle }}", local_assigns, identifier: "pages/show")).to eq("Original Local")
+    expect(controller_assigns).to eq("title" => "Original")
+    expect(local_assigns).to eq(subtitle: "Local")
+  end
+
+  it "separates equal template paths by namespace and source digest" do
+    namespaces = ["site-1", "site-2", "site-1"]
+    configuration.cache_namespace = ->(_view) { namespaces.shift }
+    allow(Liquid::Template).to receive(:parse).and_call_original
+
+    expect(handler.render("one", {}, identifier: "pages/show")).to eq("one")
+    expect(handler.render("two", {}, identifier: "pages/show")).to eq("two")
+    expect(handler.render("changed", {}, identifier: "pages/show")).to eq("changed")
+    expect(Liquid::Template).to have_received(:parse).exactly(3).times
+  end
+
+  it "parses once for repeated complete cache keys" do
+    configuration.cache_namespace = ->(_view) { "site-1" }
+    allow(Liquid::Template).to receive(:parse).and_call_original
+
+    2.times { expect(handler.render("{{ title }}", {}, identifier: "pages/show")).to eq("") }
+
+    expect(Liquid::Template).to have_received(:parse).once
+  end
+
+  it "bypasses the cache without a namespace" do
+    allow(Liquid::Template).to receive(:parse).and_call_original
+
+    2.times { expect(handler.render("{{ title }}", {}, identifier: "pages/show")).to eq("") }
+
+    expect(Liquid::Template).to have_received(:parse).twice
+  end
+
+  it "parses again after replacing the Liquid environment" do
+    configuration.cache_namespace = ->(_view) { "site-1" }
+    original_environment = Liquid::Rails.environment
+    allow(Liquid::Template).to receive(:parse).and_call_original
+
+    handler.render("Hello", {}, identifier: "pages/show")
+    Liquid::Rails.environment = Liquid::Rails.build_environment(error_mode: :strict)
+    handler.render("Hello", {}, identifier: "pages/show")
+
+    expect(Liquid::Template).to have_received(:parse).twice
+  ensure
+    Liquid::Rails.environment = original_environment
+  end
+
+  it "uses one environment state snapshot for parsing and cache generation" do
+    configuration.cache_namespace = ->(_view) { "site-1" }
+    state = Liquid::Rails.environment_state
+    allow(Liquid::Rails).to receive(:environment_state).and_return(state)
+    expect(Liquid::Rails).not_to receive(:environment)
+    expect(Liquid::Rails).not_to receive(:environment_generation)
+    expect(Liquid::Template).to receive(:parse).with("Hello", environment: state.environment).and_call_original
+
+    expect(handler.render("Hello", {}, identifier: "pages/show")).to eq("Hello")
+  end
+
+  it "raises Liquid errors when configured to raise" do
+    controller.liquid_filters = [TemplateHandlerSpecErrorFilter]
+    configuration.render_errors = :raise
+
+    expect { handler.render("{{ 'value' | raise_liquid_error }}") }.to raise_error(Liquid::Error)
+  end
+
+  it "embeds Liquid errors when configured to embed" do
+    controller.liquid_filters = [TemplateHandlerSpecErrorFilter]
+    configuration.render_errors = :embed
+
+    expect(handler.render("{{ 'value' | raise_liquid_error }}")).to include("Liquid error")
+  end
+
+  it "keeps application resources through nested rendering with fresh root register hashes" do
+    configuration.cache_namespace = ->(_view) { "site-1" }
+    resources = Object.new
+    view_with_resources = TemplateHandlerSpecView.new(controller: controller, liquid_registers: {resources: resources})
+    handler_with_resources = described_class.new(view_with_resources)
+    original_environment = Liquid::Rails.environment
+    TemplateHandlerSpecRegisterProbeTag.captures = []
+    Liquid::Rails.environment = Liquid::Rails.build_environment(error_mode: :strict) do |environment|
+      environment.register_tag("register_probe", TemplateHandlerSpecRegisterProbeTag)
+    end
+    file_system = instance_double(Liquid::Rails::FileSystem, read_template_file: "{% register_probe %}")
+    allow(Liquid::Rails::FileSystem).to receive(:new).and_return(file_system)
+
+    2.times { handler_with_resources.render("{% register_probe %}{% include 'child' %}", {}, identifier: "pages/show") }
+
+    first_root, first_child, second_root, second_child = TemplateHandlerSpecRegisterProbeTag.captures
+    expect(first_root.last).to eq(first_child.last)
+    expect(second_root.last).to eq(second_child.last)
+    expect(first_root.first).not_to eq(second_root.first)
+  ensure
+    Liquid::Rails.environment = original_environment if original_environment
+  end
+
+  it "lets framework registers override application register names" do
+    application_registers = {
+      view: :application_view,
+      controller: :application_controller,
+      helpers: :application_helpers,
+      file_system: :application_file_system
+    }
+    view_with_registers = TemplateHandlerSpecView.new(controller: controller, liquid_registers: application_registers)
+    registers = described_class.new(view_with_registers).registers
+
+    expect(registers).to include(
+      view: view_with_registers,
+      controller: controller,
+      helpers: ActionController::Base.helpers
+    )
+    expect(registers[:file_system]).to be_a(Liquid::Rails::FileSystem)
+  end
+
+  it "does not exchange assigns or tenant values across concurrent renders" do
+    configuration.cache_namespace = ->(current_view) { current_view.site_id }
+    handlers = 20.times.map do |number|
+      tenant = "site-#{number}"
+      tenant_controller = TemplateHandlerSpecController.new("tenant" => tenant)
+      described_class.new(TemplateHandlerSpecView.new(controller: tenant_controller, site_id: tenant))
+    end
+
+    results = handlers.each_with_index.map do |tenant_handler, number|
+      Thread.new { tenant_handler.render("{{ tenant }} {{ local }}", {local: number}, identifier: "pages/show") }
+    end.map(&:value)
+
+    expect(results).to eq(20.times.map { |number| "site-#{number} #{number}" })
+  end
+
+  it "passes Action View template metadata into generated render calls" do
+    template = instance_double(
+      ActionView::Template,
+      source: "Hello",
+      identifier: "app/views/pages/show.html.liquid",
+      virtual_path: "pages/show",
+      format: :html
+    )
+
+    compiled = described_class.call(template)
+
+    expect(compiled).to include("identifier: \"app/views/pages/show.html.liquid\"")
+    expect(compiled).to include("virtual_path: \"pages/show\"")
+    expect(compiled).to include("format: :html")
+  end
+end

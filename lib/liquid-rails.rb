@@ -1,6 +1,7 @@
 require 'liquid-rails/version'
 require 'liquid'
 require 'active_support/concern'
+require 'digest/sha2'
 
 require 'liquid-rails/configuration'
 
@@ -28,6 +29,7 @@ require 'liquid-rails/drops/droppable'
 require 'liquid-rails/drops/collection_drop'
 require 'liquid-rails/drops/drop'
 require 'liquid-rails/file_system'
+require 'liquid-rails/template_cache'
 require 'liquid-rails/template_handler'
 require 'liquid-rails/environment'
 
@@ -35,6 +37,7 @@ module Liquid
   module Rails
     EnvironmentState = Struct.new(:environment, :generation)
     ENVIRONMENT_MUTEX = Mutex.new
+    TEMPLATE_CACHE_MUTEX = Mutex.new
 
     class << self
       def configuration
@@ -44,6 +47,18 @@ module Liquid
       def configure
         yield(configuration)
         reset_template_cache! if respond_to?(:reset_template_cache!, true)
+      end
+
+      def template_cache
+        TEMPLATE_CACHE_MUTEX.synchronize do
+          @template_cache ||= TemplateCache.new(max_size: configuration.cache_size)
+        end
+      end
+
+      def reset_template_cache!
+        TEMPLATE_CACHE_MUTEX.synchronize do
+          @template_cache = TemplateCache.new(max_size: configuration.cache_size)
+        end
       end
 
       def environment
