@@ -1,6 +1,5 @@
 require 'liquid-rails/version'
 require 'liquid'
-require 'kaminari'
 require 'active_support/concern'
 
 module Liquid

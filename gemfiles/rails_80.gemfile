@@ -1,7 +1,6 @@
 source "https://rubygems.org"
-
-gemspec
-
+gemspec path: ".."
+gem "rails", "~> 8.0.0"
 gem "capybara", "~> 3.40"
 gem "rake", "~> 13.4"
 gem "rspec-rails", "~> 8.0"

@@ -1,25 +1,7 @@
-if ENV['CI'] || ENV['COVERAGE']
-  require 'coveralls'
-  require 'simplecov'
-
-  SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
-    SimpleCov::Formatter::HTMLFormatter,
-    Coveralls::SimpleCov::Formatter
-  ]
-
-  SimpleCov.start do
-    add_filter 'drop_example_group.rb'
-    add_filter 'tag_example_group.rb'
-    add_filter 'spec'
-    add_filter 'gemfiles'
-  end
-end
-
 # Configure Rails Environment
 ENV['RAILS_ENV'] = 'test'
 
 require File.expand_path('../dummy/config/environment.rb',  __FILE__)
-require 'pry'
 require 'liquid-rails'
 require 'rspec/rails'
 require 'capybara/rspec'
