@@ -42,42 +42,46 @@ RSpec.describe Liquid::Rails, :environment_isolation do
     described_class.remove_instance_variable(:@environment_state) if described_class.instance_variable_defined?(:@environment_state)
     described_class.remove_instance_variable(:@environment) if described_class.instance_variable_defined?(:@environment)
     described_class.remove_instance_variable(:@environment_generation) if described_class.instance_variable_defined?(:@environment_generation)
-    builders = Queue.new
-    releases = Queue.new
+    worker_entries = Queue.new
+    worker_releases = Queue.new
+    builder_entries = Queue.new
+    builder_releases = Queue.new
+    builder_calls = 0
+    builder_calls_lock = Mutex.new
+    original_environment = described_class.method(:environment)
     original_builder = described_class.method(:build_environment)
 
+    described_class.define_singleton_method(:environment) do
+      worker_entries << true
+      worker_releases.pop
+      original_environment.call
+    end
     described_class.define_singleton_method(:build_environment) do |error_mode:|
-      builders << true
-      releases.pop
+      builder_calls_lock.synchronize { builder_calls += 1 }
+      builder_entries << true
+      builder_releases.pop
       original_builder.call(error_mode:)
     end
 
     begin
-      first = Thread.new { described_class.environment }
-      builders.pop
-      second_started = Queue.new
-      second = Thread.new do
-        second_started << true
-        described_class.environment
+      Timeout.timeout(5) do
+        first = Thread.new { described_class.environment }
+        second = Thread.new { described_class.environment }
+
+        2.times { worker_entries.pop }
+        worker_releases << true
+        builder_entries.pop
+        worker_releases << true
+        2.times { builder_releases << true }
+        first_environment = first.value
+        second_environment = second.value
+
+        expect(builder_calls).to eq(1)
+        expect(first_environment).to equal(second_environment)
+        expect(described_class.environment_state.environment).to equal(first_environment)
       end
-      second_started.pop
-
-      second_started_building = begin
-        Timeout.timeout(1) { builders.pop }
-        true
-      rescue Timeout::Error
-        false
-      end
-
-      releases << true
-      releases << true
-      first_environment = first.value
-      second_environment = second.value
-
-      expect(second_started_building).to be(false)
-      expect(first_environment).to equal(second_environment)
-      expect(described_class.environment).to equal(first_environment)
     ensure
+      described_class.define_singleton_method(:environment, original_environment)
       described_class.define_singleton_method(:build_environment, original_builder)
     end
   end
