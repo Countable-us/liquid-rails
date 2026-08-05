@@ -1,4 +1,5 @@
 require 'spec_helper'
+require "timeout"
 
 describe 'Request', type: :feature do
   describe 'layout' do
@@ -129,6 +130,7 @@ class TemplateHandlerSpecView
   def initialize(controller:, assigns: {}, liquid_registers: {}, site_id: nil)
     @assigns = assigns
     @controller = controller
+    @content_blocks = {}
     @liquid_registers = liquid_registers
     @lookup_context = Struct.new(:locale).new(:en)
     @site_id = site_id
@@ -138,10 +140,35 @@ class TemplateHandlerSpecView
     false
   end
 
-  def content_for(_name)
+  def content_for(identifier, content = nil, options = {})
+    return @content_blocks[identifier] if content.nil?
+
+    @content_blocks[identifier] = options[:flush] ? content : "#{@content_blocks[identifier]}#{content}"
     nil
   end
 
+end
+
+class TemplateHandlerSpecPagedCollection
+  def to_liquid
+    self
+  end
+
+  def page(_number)
+    self
+  end
+
+  def per(_size)
+    self
+  end
+
+  def total_pages
+    2
+  end
+
+  def total_count
+    2
+  end
 end
 
 module TemplateHandlerSpecErrorFilter
@@ -160,6 +187,45 @@ class TemplateHandlerSpecRegisterProbeTag < Liquid::Tag
     ""
   end
 end
+
+module TemplateHandlerSpecBlockRenderBarrier
+  class << self
+    def arm(first_entry, first_release)
+      mutex.synchronize { @barrier = [first_entry, first_release] }
+    end
+
+    def disarm
+      mutex.synchronize { @barrier = nil }
+    end
+
+    def pause_first_content_for
+      first_entry, first_release = mutex.synchronize do
+        next unless @barrier
+
+        barrier = @barrier
+        @barrier = nil
+        barrier
+      end
+      return unless first_entry
+
+      first_entry << true
+      first_release.pop
+    end
+
+    private
+
+    def mutex
+      @mutex ||= Mutex.new
+    end
+  end
+
+  def render(context)
+    TemplateHandlerSpecBlockRenderBarrier.pause_first_content_for if is_a?(Liquid::Rails::ContentForTag)
+    super
+  end
+end
+
+Liquid::Block.prepend(TemplateHandlerSpecBlockRenderBarrier) unless Liquid::Block.ancestors.include?(TemplateHandlerSpecBlockRenderBarrier)
 
 RSpec.describe Liquid::Rails::TemplateHandler do
   let(:configuration) { Liquid::Rails.configuration }
@@ -217,6 +283,15 @@ RSpec.describe Liquid::Rails::TemplateHandler do
     2.times { expect(handler.render("{{ title }}", {}, identifier: "pages/show")).to eq("") }
 
     expect(Liquid::Template).to have_received(:parse).twice
+  end
+
+  it "caches templates when the namespace is false" do
+    configuration.cache_namespace = ->(_view) { false }
+    allow(Liquid::Template).to receive(:parse).and_call_original
+
+    2.times { expect(handler.render("{{ title }}", {}, identifier: "pages/show")).to eq("") }
+
+    expect(Liquid::Template).to have_received(:parse).once
   end
 
   it "parses again after replacing the Liquid environment" do
@@ -312,6 +387,45 @@ RSpec.describe Liquid::Rails::TemplateHandler do
     end.map(&:value)
 
     expect(results).to eq(20.times.map { |number| "site-#{number} #{number}" })
+  end
+
+  it "keeps cached content_for state with its originating view during concurrent renders" do
+    configuration.cache_namespace = ->(_view) { "site-1" }
+    source = "{% content_for slot %}{{ tenant }}{% endcontent_for %}{% yield slot %}"
+    metadata = {identifier: "pages/show"}
+    warm_handler = described_class.new(TemplateHandlerSpecView.new(controller: TemplateHandlerSpecController.new("tenant" => "warm")))
+    first_view = TemplateHandlerSpecView.new(controller: TemplateHandlerSpecController.new("tenant" => "site-1"))
+    second_view = TemplateHandlerSpecView.new(controller: TemplateHandlerSpecController.new("tenant" => "site-2"))
+    first_entry = Queue.new
+    first_release = Queue.new
+
+    expect(warm_handler.render(source, {}, metadata)).to eq("warm")
+    TemplateHandlerSpecBlockRenderBarrier.arm(first_entry, first_release)
+    first_render = Thread.new { described_class.new(first_view).render(source, {}, metadata) }
+    Timeout.timeout(3) { first_entry.pop }
+    second_render = Thread.new { described_class.new(second_view).render(source, {}, metadata) }
+
+    expect(second_render.value).to eq("site-2")
+    first_release << true
+    expect(first_render.value).to eq("site-1")
+  ensure
+    first_release << true if first_release && first_render&.alive?
+    first_render&.join
+    TemplateHandlerSpecBlockRenderBarrier.disarm
+  end
+
+  it "renders cached paginate tags with the active request page" do
+    configuration.cache_namespace = ->(_view) { "site-1" }
+    first_controller = TemplateHandlerSpecController.new("items" => TemplateHandlerSpecPagedCollection.new)
+    second_controller = TemplateHandlerSpecController.new("items" => TemplateHandlerSpecPagedCollection.new)
+    first_controller.define_singleton_method(:params) { {page: 1} }
+    first_controller.define_singleton_method(:request) { Struct.new(:fullpath).new("/pages/show") }
+    second_controller.define_singleton_method(:params) { {page: 2} }
+    second_controller.define_singleton_method(:request) { Struct.new(:fullpath).new("/pages/show?page=2") }
+    source = "{% paginate items by 1 %}{{ paginate.current_page }}:{{ paginate.next.url }}{% endpaginate %}"
+
+    expect(described_class.new(TemplateHandlerSpecView.new(controller: first_controller)).render(source, {}, identifier: "pages/show")).to eq("1:/pages/show?page=2")
+    expect(described_class.new(TemplateHandlerSpecView.new(controller: second_controller)).render(source, {}, identifier: "pages/show")).to eq("2:")
   end
 
   it "passes Action View template metadata into generated render calls" do

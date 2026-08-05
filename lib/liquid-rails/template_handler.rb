@@ -72,7 +72,7 @@ module Liquid
 
       def parsed_template(source, metadata, state)
         namespace = Liquid::Rails.configuration.cache_namespace&.call(@view)
-        return parse(source, state) unless namespace
+        return parse(source, state) if namespace.nil?
 
         Liquid::Rails.template_cache.fetch(cache_key(namespace, source, metadata, state)) do
           parse(source, state)
