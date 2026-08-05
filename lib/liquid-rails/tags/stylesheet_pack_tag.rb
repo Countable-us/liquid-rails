@@ -11,5 +11,3 @@ module Liquid
     end
   end
 end
-
-Liquid::Rails.register_tag('stylesheet_pack_tag', Liquid::Rails::StylesheetPackTag)

@@ -36,5 +36,3 @@ module Liquid
     end
   end
 end
-
-Liquid::Rails.register_tag('google_analytics_tag', Liquid::Rails::GoogleAnalyticsTag)

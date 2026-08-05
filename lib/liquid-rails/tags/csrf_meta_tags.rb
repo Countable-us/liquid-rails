@@ -7,5 +7,3 @@ module Liquid
     end
   end
 end
-
-Liquid::Rails.register_tag('csrf_meta_tags', Liquid::Rails::CsrfMetaTags)

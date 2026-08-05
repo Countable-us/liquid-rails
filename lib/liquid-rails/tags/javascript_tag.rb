@@ -18,5 +18,3 @@ module Liquid
     end
   end
 end
-
-Liquid::Rails.register_tag('javascript_tag', Liquid::Rails::JavascriptTag)
