@@ -36,33 +36,33 @@ module Liquid
           end
 
           def failure_message
-            %Q{expected #{actual.inspect} to define "#{name}" as attribute}
+            %(expected #{actual.inspect} to define "#{name}" as attribute)
           end
 
           def failure_message_when_negated
-            %Q{expected #{actual.inspect} not to define "#{name}" as attribute}
+            %(expected #{actual.inspect} not to define "#{name}" as attribute)
           end
 
           private
 
-            def drop
-              if actual.is_a?(Class)
-                actual
-              else
-                actual.class
-              end
+          def drop
+            if actual.is_a?(Class)
+              actual
+            else
+              actual.class
             end
+          end
 
-            def attributes
-              drop._attributes
-            end
+          def attributes
+            drop._attributes
+          end
         end
 
         class AssociationMatcher
           attr_reader :name, :actual, :options
 
           def initialize(name, options)
-            @name    = name
+            @name = name
             @options = options
           end
 
@@ -71,9 +71,9 @@ module Liquid
 
             association = associations[name]
             result = association.present? && association[:type] == options[:type]
-            result = result && association[:options][:scope] == options[:scope]           if options[:scope]
-            result = result && association[:options][:with] == options[:with]             if options[:with]
-            result = result && association[:options][:class_name] == options[:class_name] if options[:class_name]
+            result &&= association[:options][:scope] == options[:scope] if options[:scope]
+            result &&= association[:options][:with] == options[:with] if options[:with]
+            result &&= association[:options][:class_name] == options[:class_name] if options[:class_name]
 
             result
           end
@@ -98,26 +98,26 @@ module Liquid
           end
 
           def failure_message
-            %Q{expected #{actual.inspect} to define "#{name}" as :#{options[:type]} association}
+            %(expected #{actual.inspect} to define "#{name}" as :#{options[:type]} association)
           end
 
           def failure_message_when_negated
-            %Q{expected #{actual.inspect} not to define "#{name}" as :#{options[:type]} association}
+            %(expected #{actual.inspect} not to define "#{name}" as :#{options[:type]} association)
           end
 
           private
 
-            def drop
-              if actual.is_a?(Class)
-                actual
-              else
-                actual.class
-              end
+          def drop
+            if actual.is_a?(Class)
+              actual
+            else
+              actual.class
             end
+          end
 
-            def associations
-              drop._associations
-            end
+          def associations
+            drop._associations
+          end
         end
 
         class ScopeMatcher
@@ -138,26 +138,26 @@ module Liquid
           end
 
           def failure_message
-            %Q{expected #{actual.inspect} to define "#{name}" as scope}
+            %(expected #{actual.inspect} to define "#{name}" as scope)
           end
 
           def failure_message_when_negated
-            %Q{expected #{actual.inspect} not to define "#{name}" as scope}
+            %(expected #{actual.inspect} not to define "#{name}" as scope)
           end
 
           private
 
-            def drop
-              if actual.is_a?(Class)
-                actual
-              else
-                actual.class
-              end
+          def drop
+            if actual.is_a?(Class)
+              actual
+            else
+              actual.class
             end
+          end
 
-            def scopes
-              drop._scopes
-            end
+          def scopes
+            drop._scopes
+          end
         end
       end
     end

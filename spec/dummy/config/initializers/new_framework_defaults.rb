@@ -1,4 +1,4 @@
-if Rails.version.start_with?('5.0')
+if Rails.version.start_with?("5.0")
   # Be sure to restart your server when you modify this file.
   #
   # This file contains migration options to ease your Rails 5.0 upgrade.
@@ -26,5 +26,5 @@ if Rails.version.start_with?('5.0')
   end
 
   # Configure SSL options to enable HSTS with subdomains. Previous versions had false.
-  Rails.application.config.ssl_options = { hsts: { subdomains: true } }
+  Rails.application.config.ssl_options = {hsts: {subdomains: true}}
 end

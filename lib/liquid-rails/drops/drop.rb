@@ -1,14 +1,13 @@
 module Liquid
   module Rails
     class Drop < ::Liquid::Drop
-
       class << self
         attr_accessor :_attributes
         attr_accessor :_associations
       end
 
       def self.inherited(base)
-        base._attributes   = []
+        base._attributes = []
         base._associations = {}
       end
 
@@ -29,17 +28,23 @@ module Liquid
       def self.drop_class_for(resource)
         if resource.respond_to?(:to_ary)
           Liquid::Rails::CollectionDrop
+        elsif self == Liquid::Rails::Drop
+          declared_drop_class = resource.drop_class if resource.respond_to?(:drop_class)
+          declared_drop_class || conventional_drop_class_for(resource) || Liquid::Rails::Drop
         else
-          if self == Liquid::Rails::Drop
-            resource.drop_class || Liquid::Rails::Drop
-          else
-            self
-          end
+          self
         end
       end
 
+      def self.conventional_drop_class_for(resource)
+        class_name = resource.class.name
+        return if class_name.nil?
+
+        "#{class_name}Drop".safe_constantize
+      end
+
       # Create a drop instance when it cannot be inferred.
-      def self.dropify(resource, options={})
+      def self.dropify(resource, options = {})
         drop_class = if options[:class_name]
           options[:class_name].constantize
         else
@@ -58,7 +63,7 @@ module Liquid
       end
 
       def self.associate(type, attrs)
-        options = attrs.extract_options!
+        declaration_options = attrs.extract_options!.to_h.dup.freeze
         self._associations = _associations.dup
 
         attrs.each do |attr|
@@ -71,19 +76,23 @@ module Liquid
             association = object.send(attr)
             return nil if association.nil?
 
-            options[:current_user] = current_user
-
-            drop_instance = Liquid::Rails::Drop.dropify(association, options)
+            association_options = options.merge(declaration_options)
+            drop_instance = Liquid::Rails::Drop.dropify(association, association_options)
             instance_variable_set("@_#{attr}", drop_instance)
           end
 
-          self._associations[attr] = { type: type, options: options }
+          _associations[attr] = {type: type, options: declaration_options}
         end
       end
 
       # Wraps an object in a new instance of the drop.
-      def initialize(object, options={})
+      def initialize(object, options = {})
         @object = object
+        @options = options.to_h.dup.freeze
+      end
+
+      def current_user
+        options[:current_user]
       end
 
       def attributes
@@ -92,11 +101,11 @@ module Liquid
         end
       end
 
-      def as_json(options={})
+      def as_json(options = {})
         attributes.as_json(options)
       end
 
-      def to_json(options={})
+      def to_json(options = {})
         as_json.to_json(options)
       end
 
@@ -110,7 +119,7 @@ module Liquid
 
       protected
 
-        attr_reader :object
+      attr_reader :object, :options
     end
   end
 end

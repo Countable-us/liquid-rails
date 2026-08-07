@@ -27,6 +27,6 @@ class HomeController < ApplicationController
   private
 
   def set_book
-    @book = { 'name' => 'Liquid on Rails' }
+    @book = {"name" => "Liquid on Rails"}
   end
 end

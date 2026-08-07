@@ -17,7 +17,7 @@ RSpec::Matchers.define :delegate do |method|
     @method = @prefix ? :"#{@prefix}_#{method}" : method
     @delegator = delegator
 
-    if @to.to_s[0] == '@'
+    if @to.to_s[0] == "@"
       # Delegation to an instance variable
       old_value = @delegator.instance_variable_get(@to)
       begin
@@ -27,7 +27,7 @@ RSpec::Matchers.define :delegate do |method|
         @delegator.instance_variable_set(@to, old_value)
       end
     elsif @delegator.respond_to?(@to, true)
-      unless [0,-1].include?(@delegator.method(@to).arity)
+      unless [0, -1].include?(@delegator.method(@to).arity)
         raise "#{@delegator}'s' #{@to} method does not have zero or -1 arity (it expects parameters)"
       end
       allow(@delegator).to receive(@to).and_return(receiver_double(method))
@@ -38,22 +38,22 @@ RSpec::Matchers.define :delegate do |method|
   end
 
   description do
-    "delegate :#{@method} to its #{@to}#{@prefix ? ' with prefix' : ''}"
+    "delegate :#{@method} to its #{@to}#{" with prefix" if @prefix}"
   end
 
   failure_message do |text|
-    "expected #{@delegator} to delegate :#{@method} to its #{@to}#{@prefix ? ' with prefix' : ''}"
+    "expected #{@delegator} to delegate :#{@method} to its #{@to}#{" with prefix" if @prefix}"
   end
 
   failure_message_when_negated do |text|
-    "expected #{@delegator} not to delegate :#{@method} to its #{@to}#{@prefix ? ' with prefix' : ''}"
+    "expected #{@delegator} not to delegate :#{@method} to its #{@to}#{" with prefix" if @prefix}"
   end
 
   chain(:to) { |receiver| @to = receiver }
   chain(:with_prefix) { |*prefix| @prefix = prefix.first || @to }
 
   def receiver_double(method)
-    double('receiver').tap do |receiver|
+    double("receiver").tap do |receiver|
       allow(receiver).to receive(method).and_return(:called)
     end
   end
