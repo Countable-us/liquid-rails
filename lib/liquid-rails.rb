@@ -84,6 +84,14 @@ module Liquid
         ENVIRONMENT_MUTEX.synchronize { @environment_state = install_environment(environment) }
       end
 
+      def install_application_environment!(root:)
+        environment = build_environment(error_mode: :strict) do |configured_environment|
+          ApplicationExtensions.new(root:, configuration:).register(configured_environment)
+        end
+
+        self.environment = environment
+      end
+
       private
 
       def install_environment(environment)

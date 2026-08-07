@@ -1,5 +1,8 @@
 require "spec_helper"
+require "fileutils"
+require "pathname"
 require "timeout"
+require "tmpdir"
 
 module EnvironmentSpecTestFilter
   def decorated(input)
@@ -55,6 +58,55 @@ RSpec.describe Liquid::Rails, :environment_isolation do
     described_class.environment = described_class.build_environment(error_mode: :strict)
 
     expect(described_class.environment_generation).to eq(generation + 1)
+  end
+
+  it "installs configured application extensions in an isolated environment" do
+    Dir.mktmpdir("liquid-rails-application-environment") do |directory|
+      root = Pathname.new(directory)
+      write_application_extension(root.join("app/liquid/filters/installed_application_filter.rb"), <<~'RUBY')
+        module Liquid
+          module Filters
+            module InstalledApplicationFilter
+              def installed_application(input)
+                "installed: #{input}"
+              end
+            end
+          end
+        end
+      RUBY
+      write_application_extension(root.join("app/liquid/tags/installed_application_tag.rb"), <<~RUBY)
+        module Liquid
+          module Tags
+            class InstalledApplicationTag < Liquid::Tag
+              def render(_context)
+                "installed tag"
+              end
+            end
+          end
+        end
+      RUBY
+      configuration = described_class.configuration
+      original_filters_location = configuration.filters_location
+      original_tags_location = configuration.tags_location
+      configuration.filters_location = "app/liquid/filters"
+      configuration.tags_location = "app/liquid/tags"
+      generation = described_class.environment_generation
+
+      environment = described_class.install_application_environment!(root:)
+
+      expect(environment).to equal(described_class.environment)
+      expect(environment).not_to equal(Liquid::Environment.default)
+      expect(described_class.environment_generation).to eq(generation + 1)
+      expect(Liquid::Template.parse("{{ 'value' | installed_application }}", environment:).render).to eq("installed: value")
+      expect(Liquid::Template.parse("{% installed_application_tag %}", environment:).render).to eq("installed tag")
+    ensure
+      configuration.filters_location = original_filters_location
+      configuration.tags_location = original_tags_location
+      if Liquid.const_defined?(:Filters, false) && Liquid::Filters.const_defined?(:InstalledApplicationFilter, false)
+        Liquid::Filters.send(:remove_const, :InstalledApplicationFilter)
+      end
+      Liquid::Tags.send(:remove_const, :InstalledApplicationTag) if Liquid::Tags.const_defined?(:InstalledApplicationTag, false)
+    end
   end
 
   it "initializes one lazy environment when callers race" do
@@ -161,5 +213,10 @@ RSpec.describe Liquid::Rails, :environment_isolation do
       expect(state.environment).to equal(replacement)
       expect(state.generation).to eq(initial_state.generation + 1)
     end
+  end
+
+  def write_application_extension(path, contents)
+    FileUtils.mkdir_p(path.dirname)
+    path.write(contents)
   end
 end
