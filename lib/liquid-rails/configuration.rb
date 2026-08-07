@@ -3,12 +3,14 @@ module Liquid
     class Configuration
       RENDER_ERROR_POLICIES = %i[raise embed].freeze
 
-      attr_reader :cache_namespace, :cache_size, :render_errors
+      attr_reader :cache_namespace, :cache_size, :filters_location, :render_errors, :tags_location
 
       def initialize
         @cache_namespace = nil
         @cache_size = 1_000
+        @filters_location = "app/liquid/filters"
         @render_errors = :raise
+        @tags_location = "app/liquid/tags"
       end
 
       def cache_size=(value)
@@ -24,11 +26,19 @@ module Liquid
         @cache_namespace = value
       end
 
+      def filters_location=(value)
+        @filters_location = value
+      end
+
       def render_errors=(value)
         value = value.to_sym
         raise ArgumentError, "render_errors must be :raise or :embed" unless RENDER_ERROR_POLICIES.include?(value)
 
         @render_errors = value
+      end
+
+      def tags_location=(value)
+        @tags_location = value
       end
     end
   end

@@ -45,6 +45,19 @@ end
 
 Do not use `Liquid::Template.register_filter`, `Liquid::Template.register_tag`, or mutate `Liquid::Environment.default`; 1.0 does not use global registration.
 
+### Application extension discovery
+
+Liquid Rails discovers application filters from `app/liquid/filters` and tags from `app/liquid/tags` by default. The directory names describe the extension type: place filters in the filters location and tags in the tags location.
+
+Override either location with a relative or absolute path-like value. Set a location to `nil` to disable discovery for that extension type:
+
+```ruby
+Liquid::Rails.configure do |config|
+  config.filters_location = Rails.root.join("lib/liquid/filters")
+  config.tags_location = nil
+end
+```
+
 ### Render inputs and errors
 
 The handler builds fresh assigns and registers for every render. A view may provide application registers with `liquid_registers`:
