@@ -47,7 +47,7 @@ Do not use `Liquid::Template.register_filter`, `Liquid::Template.register_tag`, 
 
 ### Application extension discovery
 
-Liquid Rails discovers application filters from `app/liquid/filters` and tags from `app/liquid/tags` by default. The directory names describe the extension type: place filters in the filters location and tags in the tags location.
+Liquid Rails discovers application filters from `lib/liquid/filters` and tags from `lib/liquid/tags` by default. The directory names describe the extension type: place filters in the filters location and tags in the tags location.
 
 Override either location with a relative or absolute path-like value. Set a location to `nil` to disable discovery for that extension type:
 

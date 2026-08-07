@@ -6,8 +6,8 @@ RSpec.describe Liquid::Rails::Configuration do
     it "defaults to the conventional relative filter and tag paths" do
       configuration = described_class.new
 
-      expect(configuration.filters_location).to eq("app/liquid/filters")
-      expect(configuration.tags_location).to eq("app/liquid/tags")
+      expect(configuration.filters_location).to eq("lib/liquid/filters")
+      expect(configuration.tags_location).to eq("lib/liquid/tags")
     end
 
     it "accepts strings and Pathname objects as location overrides" do

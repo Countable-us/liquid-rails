@@ -8,9 +8,9 @@ module Liquid
       def initialize
         @cache_namespace = nil
         @cache_size = 1_000
-        @filters_location = "app/liquid/filters"
+        @filters_location = "lib/liquid/filters"
         @render_errors = :raise
-        @tags_location = "app/liquid/tags"
+        @tags_location = "lib/liquid/tags"
       end
 
       def cache_size=(value)
