@@ -157,6 +157,7 @@ git commit -m "feat: reload liquid extensions on rails prepare"
 - Modify: `site/test/integration/liquid_environment_test.rb`
 - Modify: `site/test/integration/liquid_environment_reload_test.rb`
 - Modify: `site/test/services/liquid/resource_registry_test.rb`
+- Modify: `site/docs/liquid-rendering.md`
 
 **Interfaces:**
 - Consumes: gem-managed conventional discovery and prepare lifecycle.
@@ -185,6 +186,10 @@ Leave render policy, cache size, and the `site_id` cache namespace in the initia
 - why Drops outside a Liquid context create a tenant-bound fallback registry;
 - why registry queries use `unscoped` together with an explicit captured `site_id` instead of mutable `Current.site`.
 
+Update the canonical Liquid rendering documentation so it describes the
+gem-owned discovery and prepare lifecycle while retaining the application/gem
+ownership boundary and tenant-resource rules.
+
 - [ ] **Step 4: Verify GREEN**
 
 Run the same targeted platform command and `bundle exec rake liquid:lint`.
@@ -192,7 +197,7 @@ Run the same targeted platform command and `bundle exec rake liquid:lint`.
 - [ ] **Step 5: Commit the platform changes**
 
 ```bash
-git add site/app/controllers/application_controller.rb site/app/drops/application_drop.rb site/app/services/liquid/resource_registry.rb site/config/initializers/liquid.rb site/test/integration/liquid_environment_test.rb site/test/integration/liquid_environment_reload_test.rb site/test/services/liquid/resource_registry_test.rb
+git add site/app/controllers/application_controller.rb site/app/drops/application_drop.rb site/app/services/liquid/resource_registry.rb site/config/initializers/liquid.rb site/docs/liquid-rendering.md site/test/integration/liquid_environment_test.rb site/test/integration/liquid_environment_reload_test.rb site/test/services/liquid/resource_registry_test.rb
 git commit -m "refactor: use gem extension discovery"
 ```
 
