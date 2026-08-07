@@ -147,10 +147,16 @@ git add lib/liquid-rails.rb lib/liquid-rails/railtie.rb spec/lib/liquid-rails/en
 git commit -m "feat: reload liquid extensions on rails prepare"
 ```
 
+- [ ] **Step 7: Push the gem branch for platform integration**
+
+Push `codex/liquid-rails-1-0` so the platform's Git dependency can lock to
+the implementation commit before its integration tests run.
+
 ### Task 4: Platform Integration and Review Explanations
 
 **Files:**
 - Modify: `site/config/initializers/liquid.rb`
+- Modify: `site/Gemfile.lock`
 - Modify: `site/app/controllers/application_controller.rb`
 - Modify: `site/app/drops/application_drop.rb`
 - Modify: `site/app/services/liquid/resource_registry.rb`
@@ -179,7 +185,9 @@ Expected: FAIL because the application still owns installation and the reload te
 
 - [ ] **Step 3: Remove the application installer and add detailed comments**
 
-Leave render policy, cache size, and the `site_id` cache namespace in the initializer. Expand comments to explain:
+Update `Gemfile.lock` to the pushed gem implementation. Leave render policy,
+cache size, and the `site_id` cache namespace in the initializer. Expand
+comments to explain:
 
 - why the controller exposes `liquid_registers` to the view context;
 - why one registry is shared throughout a render;
@@ -197,7 +205,7 @@ Run the same targeted platform command and `bundle exec rake liquid:lint`.
 - [ ] **Step 5: Commit the platform changes**
 
 ```bash
-git add site/app/controllers/application_controller.rb site/app/drops/application_drop.rb site/app/services/liquid/resource_registry.rb site/config/initializers/liquid.rb site/docs/liquid-rendering.md site/test/integration/liquid_environment_test.rb site/test/integration/liquid_environment_reload_test.rb site/test/services/liquid/resource_registry_test.rb
+git add site/Gemfile.lock site/app/controllers/application_controller.rb site/app/drops/application_drop.rb site/app/services/liquid/resource_registry.rb site/config/initializers/liquid.rb site/docs/liquid-rendering.md site/test/integration/liquid_environment_test.rb site/test/integration/liquid_environment_reload_test.rb site/test/services/liquid/resource_registry_test.rb
 git commit -m "refactor: use gem extension discovery"
 ```
 
