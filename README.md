@@ -87,7 +87,7 @@ class ProductDrop < Liquid::Rails::Drop
 end
 ```
 
-`Liquid::Rails::Drop` copies its options and propagates them through declared associations. Use explicit `Drop` classes for objects that should be exposed to templates.
+`Liquid::Rails::Drop` copies its options and propagates them through declared associations. Association and collection items infer a conventional `ProductDrop` from a `Product` record even when `Product` does not include `Droppable`; use `class_name:` or `with:` only when the adapter does not follow that naming convention. Models still must include `Droppable` when their own `to_liquid` conversion should be available.
 
 `Liquid::Rails::CollectionDrop` deliberately exposes a small allowlist to Liquid: iteration, sliced loop loading, indexing, `first`, `last`, `count`, `size`/`length`, `empty?`, `page`, `per`, `total_count`, and `total_pages`, plus scopes declared with `.scope`. It does not dispatch arbitrary Ruby methods or expose its source collection to templates. Ruby integrations that need the underlying source may call `Liquid::Rails::CollectionDrop.unwrap(drop)`; it raises `ArgumentError` for anything other than a collection Drop.
 

@@ -29,10 +29,18 @@ module Liquid
         if resource.respond_to?(:to_ary)
           Liquid::Rails::CollectionDrop
         elsif self == Liquid::Rails::Drop
-          resource.drop_class || Liquid::Rails::Drop
+          declared_drop_class = resource.drop_class if resource.respond_to?(:drop_class)
+          declared_drop_class || conventional_drop_class_for(resource) || Liquid::Rails::Drop
         else
           self
         end
+      end
+
+      def self.conventional_drop_class_for(resource)
+        class_name = resource.class.name
+        return if class_name.nil?
+
+        "#{class_name}Drop".safe_constantize
       end
 
       # Create a drop instance when it cannot be inferred.

@@ -37,6 +37,12 @@ module Liquid
             expect(drop).to be_instance_of(Liquid::Rails::Drop)
           end
 
+          it "infers a conventional drop without requiring Droppable on the resource" do
+            drop = Liquid::Rails::Drop.dropify(ConventionOnly.new)
+
+            expect(drop).to be_instance_of(ConventionOnlyDrop)
+          end
+
           it "instantitates with the caller drop class" do
             drop = ReProfileDrop.dropify(profile)
             expect(drop).to be_instance_of(ReProfileDrop)
@@ -103,6 +109,13 @@ module Liquid
 
           it "#post returns as PostDrop object" do
             expect(@comment_drop.post).to be_instance_of(::PostDrop)
+          end
+
+          it "infers a conventional association drop without requiring Droppable on the resource" do
+            owner = ConventionOwner.new
+            owner.resource = ConventionOnly.new
+
+            expect(ConventionOwnerDrop.new(owner).resource).to be_instance_of(ConventionOnlyDrop)
           end
 
           it "#repost returns as PostDrop object" do

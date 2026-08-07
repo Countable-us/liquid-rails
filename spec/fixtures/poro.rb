@@ -32,6 +32,13 @@ end
 class Profile < Model
 end
 
+class ConventionOnly
+end
+
+class ConventionOwner
+  attr_accessor :resource
+end
+
 class PaginatedComments
   include Enumerable
 
@@ -58,6 +65,13 @@ end
 
 class ProfileDrop < Liquid::Rails::Drop
   attributes :name, :description
+end
+
+class ConventionOnlyDrop < Liquid::Rails::Drop
+end
+
+class ConventionOwnerDrop < Liquid::Rails::Drop
+  belongs_to :resource
 end
 
 Post = Class.new(Model)

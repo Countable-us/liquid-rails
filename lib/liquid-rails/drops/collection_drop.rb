@@ -200,7 +200,7 @@ module Liquid
       def drop_item(item, options = {})
         return if item.nil?
 
-        liquid_drop_class = drop_class || item.drop_class
+        liquid_drop_class = drop_class || Liquid::Rails::Drop.drop_class_for(item)
         liquid_drop_class.new(item, options)
       end
     end

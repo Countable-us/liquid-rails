@@ -27,6 +27,12 @@ class QuerySpy
 end
 
 RSpec.describe Liquid::Rails::CollectionDrop do
+  it "infers conventional item drops without requiring Droppable on the resources" do
+    collection = described_class.new([ConventionOnly.new])
+
+    expect(collection.first).to be_instance_of(ConventionOnlyDrop)
+  end
+
   it "supports Liquid iteration without eager mapping" do
     source = QuerySpy.new([Profile.new(name: "One"), Profile.new(name: "Two")])
     drop = described_class.new(source, with: "ProfileDrop", current_user: "viewer")
