@@ -13,6 +13,7 @@ require "action_view/helpers"
 require "rails/railtie"
 
 require "liquid-rails/configuration"
+require "liquid-rails/application_extensions"
 
 require "liquid-rails/filters/asset_tag_filter"
 require "liquid-rails/filters/asset_url_filter"
