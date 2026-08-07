@@ -58,6 +58,64 @@ RSpec.describe Liquid::Rails::CollectionDrop do
     expect(source.slice_calls).to eq(1)
   end
 
+  it "renders every documented Liquid collection property" do
+    drop = described_class.new(
+      [
+        Profile.new(name: "One"),
+        Profile.new(name: "Two"),
+        Profile.new(name: "Three")
+      ],
+      with: "ProfileDrop"
+    ).page(1).per(2)
+
+    rendered = Liquid::Template
+      .parse(<<~LIQUID, environment: Liquid::Rails.environment)
+        {{ items[1].name }}|
+        {{ items.first.name }}|
+        {{ items.last.name }}|
+        {{ items.count }}|
+        {{ items.size }}|
+        {{ items.length }}|
+        {{ items.empty? }}|
+        {{ items.total_count }}|
+        {{ items.total_pages }}
+      LIQUID
+      .render!("items" => drop)
+
+    expect(rendered.lines.map(&:strip).join).to eq("Two|One|Two|2|2|2|false|3|2")
+  end
+
+  it "slices paginated arrays for Liquid loop limits and offsets" do
+    drop = described_class.new(
+      [
+        Profile.new(name: "One"),
+        Profile.new(name: "Two"),
+        Profile.new(name: "Three"),
+        Profile.new(name: "Four")
+      ],
+      with: "ProfileDrop"
+    ).page(1).per(3)
+
+    rendered = Liquid::Template
+      .parse(<<~LIQUID, environment: Liquid::Rails.environment)
+        {% for item in items limit: 2 %}{{ item.name }}{% endfor %}|
+        {% for item in items offset: 1 %}{{ item.name }}{% endfor %}
+      LIQUID
+      .render!("items" => drop)
+
+    expect(rendered.lines.map(&:strip).join).to eq("OneTwo|TwoThree")
+  end
+
+  it "renders declared collection scopes" do
+    drop = CommentsDrop.new(PaginatedComments.new([Comment.new(body: "Approved")]))
+
+    rendered = Liquid::Template
+      .parse("{{ items.approved.first.body }}", environment: Liquid::Rails.environment)
+      .render!("items" => drop)
+
+    expect(rendered).to eq("Approved")
+  end
+
   it "does not dispatch arbitrary Ruby methods" do
     drop = described_class.new([Profile.new(name: "One")], with: "ProfileDrop")
 

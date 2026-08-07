@@ -23,7 +23,7 @@ Then run `bundle install`. Rails registers `.liquid` as an Action View template 
 
 ## Configure rendering and extensions
 
-Liquid extensions belong to an application environment, not Liquid's global default environment. Configure render policy and build a fresh environment during each Rails prepare pass:
+Liquid extensions belong to an application environment, not Liquid's global default environment. Configure render policy in an initializer:
 
 ```ruby
 Liquid::Rails.configure do |config|
@@ -31,17 +31,9 @@ Liquid::Rails.configure do |config|
   config.cache_size = 1_000
   config.cache_namespace = ->(view) { view.liquid_registers[:site_id] }
 end
-
-Rails.application.config.to_prepare do
-  environment = Liquid::Rails.build_environment(error_mode: :strict) do |liquid|
-    liquid.register_filter(MyApplicationFilter)
-    liquid.register_tag("my_tag", MyApplicationTag)
-  end
-  Liquid::Rails.environment = environment
-end
 ```
 
-`Liquid::Rails.build_environment` includes the supported generic Rails filters and tags. The block is the place to register application-specific filters and tags. Assigning `Liquid::Rails.environment` atomically installs the completed environment and advances its generation, so subsequent renders parse against the new extension set.
+The Liquid Rails Railtie owns the application-environment lifecycle. On every Rails prepare pass it builds a fresh strict environment, discovers the application's conventional extensions, and atomically installs the completed environment. Installing a replacement advances the environment generation, so subsequent renders parse against the current extension classes after a development reload. Applications should not add a second `to_prepare` callback for this work.
 
 Do not use `Liquid::Template.register_filter`, `Liquid::Template.register_tag`, or mutate `Liquid::Environment.default`; 1.0 does not use global registration.
 
@@ -57,6 +49,25 @@ Liquid::Rails.configure do |config|
   config.tags_location = nil
 end
 ```
+
+### Manual environment construction
+
+Manual construction is an alternative lifecycle, not an addition to the Railtie lifecycle. Use it only in a nonstandard host that does not run the Railtie-owned installation, disable automatic discovery, and make one host callback the sole environment owner:
+
+```ruby
+Liquid::Rails.configure do |config|
+  config.filters_location = nil
+  config.tags_location = nil
+end
+
+environment = Liquid::Rails.build_environment(error_mode: :strict) do |liquid|
+  liquid.register_filter(MyApplicationFilter)
+  liquid.register_tag("my_tag", MyApplicationTag)
+end
+Liquid::Rails.environment = environment
+```
+
+Run that construction from the single lifecycle hook chosen by the host. Ordinary Rails applications should use the Railtie-owned discovery lifecycle above.
 
 ### Render inputs and errors
 
@@ -102,7 +113,7 @@ end
 
 `Liquid::Rails::Drop` copies its options and propagates them through declared associations. Association and collection items infer a conventional `ProductDrop` from a `Product` record even when `Product` does not include `Droppable`; use `class_name:` or `with:` only when the adapter does not follow that naming convention. Models still must include `Droppable` when their own `to_liquid` conversion should be available.
 
-`Liquid::Rails::CollectionDrop` deliberately exposes a small allowlist to Liquid: iteration, sliced loop loading, indexing, `first`, `last`, `count`, `size`/`length`, `empty?`, `page`, `per`, `total_count`, and `total_pages`, plus scopes declared with `.scope`. It does not dispatch arbitrary Ruby methods or expose its source collection to templates. Ruby integrations that need the underlying source may call `Liquid::Rails::CollectionDrop.unwrap(drop)`; it raises `ArgumentError` for anything other than a collection Drop.
+`Liquid::Rails::CollectionDrop` deliberately exposes a small Liquid surface: iteration, sliced loop loading, integer indexing, `first`, `last`, `count`, `size`/`length`, `empty?`, `total_count`, and `total_pages`, plus scopes declared with `.scope`. Pagination integrations can call its Ruby `page` and `per` methods before rendering. It does not dispatch arbitrary Ruby methods or expose its source collection to templates. Ruby integrations that need the underlying source may call `Liquid::Rails::CollectionDrop.unwrap(drop)`; it raises `ArgumentError` for anything other than a collection Drop.
 
 ## Generic extensions
 

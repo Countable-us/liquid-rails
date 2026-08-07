@@ -1,6 +1,8 @@
 module Liquid
   module Rails
     class CollectionDrop < ::Liquid::Drop
+      LIQUID_METHODS = %w[first last count size length empty? total_count total_pages].freeze
+
       class ArrayPagination
         include Enumerable
 
@@ -24,6 +26,10 @@ module Liquid
 
         def [](index)
           paged_items[index]
+        end
+
+        def slice(range)
+          paged_items.slice(range)
         end
 
         def first
@@ -122,7 +128,7 @@ module Liquid
       def [](method)
         if method.is_a?(Integer)
           drop_item(objects[method], options)
-        elsif method.is_a?(String) && self.class._scopes.to_a.include?(method.to_sym)
+        elsif method.is_a?(String) && (LIQUID_METHODS.include?(method) || self.class._scopes.to_a.include?(method.to_sym))
           public_send(method)
         end
       end

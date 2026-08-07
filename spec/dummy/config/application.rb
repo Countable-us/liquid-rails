@@ -10,6 +10,7 @@ require "liquid-rails"
 module Dummy
   class Application < Rails::Application
     config.load_defaults 8.0
+    config.autoload_lib(ignore: %w[assets tasks])
 
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration should go into files in config/initializers
