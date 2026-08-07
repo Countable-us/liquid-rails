@@ -19,13 +19,15 @@ module Liquid
 
       def render(source, local_assigns = {}, metadata = {})
         state = Liquid::Rails.environment_state
+        render_assigns = assigns(local_assigns)
+        render_registers = registers.merge(liquid_assigns: render_assigns)
         liquid = parsed_template(source, metadata, state).dup
         liquid.instance_variable_set(:@resource_limits, Liquid::ResourceLimits.new(state.environment.default_resource_limits))
 
         rendered = if Liquid::Rails.configuration.render_errors == :raise
-          liquid.render!(assigns(local_assigns), filters: filters, registers: registers)
+          liquid.render!(render_assigns, filters: filters, registers: render_registers)
         else
-          liquid.render(assigns(local_assigns), filters: filters, registers: registers)
+          liquid.render(render_assigns, filters: filters, registers: render_registers)
         end
         rendered.html_safe
       end

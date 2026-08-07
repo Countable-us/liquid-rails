@@ -165,6 +165,19 @@ class TemplateHandlerSpecRegisterProbeTag < Liquid::Tag
   end
 end
 
+class TemplateHandlerSpecAssignsProbeTag < Liquid::Tag
+  class << self
+    attr_accessor :captures
+  end
+
+  def render(context)
+    render_assigns = context.registers.fetch(:liquid_assigns)
+    self.class.captures << render_assigns.dup
+    render_assigns["local"] = "changed by tag"
+    ""
+  end
+end
+
 module TemplateHandlerSpecBlockRenderBarrier
   class << self
     def arm(first_entry, first_release)
@@ -232,6 +245,28 @@ RSpec.describe Liquid::Rails::TemplateHandler do
     expect(handler.render("{{ title }} {{ subtitle }}", local_assigns, identifier: "pages/show")).to eq("Original Local")
     expect(controller_assigns).to eq("title" => "Original")
     expect(local_assigns).to eq(subtitle: "Local")
+  end
+
+  it "uses one isolated merged assign hash for rendering and registers" do
+    controller_assigns = {"controller" => "Controller"}
+    local_assigns = {local: "Local"}
+    controller.liquid_assigns = controller_assigns
+    original_environment = Liquid::Rails.environment
+    TemplateHandlerSpecAssignsProbeTag.captures = []
+    Liquid::Rails.environment = Liquid::Rails.build_environment(error_mode: :strict) do |environment|
+      environment.register_tag("assigns_probe", TemplateHandlerSpecAssignsProbeTag)
+    end
+
+    output = handler.render("{% assigns_probe %}{{ controller }} {{ local }}", local_assigns)
+
+    expect(output).to eq("Controller changed by tag")
+    expect(TemplateHandlerSpecAssignsProbeTag.captures).to eq(
+      [{"controller" => "Controller", "local" => "Local"}]
+    )
+    expect(controller_assigns).to eq("controller" => "Controller")
+    expect(local_assigns).to eq(local: "Local")
+  ensure
+    Liquid::Rails.environment = original_environment if original_environment
   end
 
   it "separates equal template paths by namespace and source digest" do
