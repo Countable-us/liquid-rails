@@ -23,15 +23,13 @@ module Liquid
 
       def register_filters(environment)
         extensions_in(configuration.filters_location).each do |file|
-          require_dependency(file.to_s)
-          environment.register_filter(extension_constant(file, :Filters))
+          environment.register_filter(load_extension(file, :Filters))
         end
       end
 
       def register_tags(environment)
         extensions_in(configuration.tags_location).each do |file|
-          require_dependency(file.to_s)
-          environment.register_tag(file.basename(".rb").to_s, extension_constant(file, :Tags))
+          environment.register_tag(file.basename(".rb").to_s, load_extension(file, :Tags))
         end
       end
 
@@ -47,6 +45,18 @@ module Liquid
 
       def extension_constant(file, namespace)
         ::Liquid.const_get(namespace).const_get(file.basename(".rb").to_s.camelize, false)
+      end
+
+      def load_extension(file, namespace)
+        require_dependency(file.to_s)
+        load(file.to_s) unless extension_defined?(file, namespace)
+
+        extension_constant(file, namespace)
+      end
+
+      def extension_defined?(file, namespace)
+        ::Liquid.const_defined?(namespace, false) &&
+          ::Liquid.const_get(namespace).const_defined?(file.basename(".rb").to_s.camelize, false)
       end
     end
   end

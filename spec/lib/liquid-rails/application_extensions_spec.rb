@@ -114,6 +114,31 @@ RSpec.describe Liquid::Rails::ApplicationExtensions, :environment_isolation do
     expect(Liquid::Filters::ExtensionLoadOrder).to eq(%i[alpha zulu])
   end
 
+  it "reloads an extension after Rails unloads its constant" do
+    write_extension("app/liquid/filters/reloadable_filter.rb", <<~'RUBY')
+      module Liquid
+        module Filters
+          module ReloadableFilter
+            def reloadable_extension(input)
+              "reloaded: #{input}"
+            end
+          end
+        end
+      end
+    RUBY
+    configuration = configuration_with(filters_location: "app/liquid/filters", tags_location: nil)
+    loader = described_class.new(root: @root, configuration:)
+
+    loader.register(Liquid::Environment.new)
+    unloaded_filter = Liquid::Filters.send(:remove_const, :ReloadableFilter)
+    environment = Liquid::Environment.new
+
+    loader.register(environment)
+
+    expect(Liquid::Filters::ReloadableFilter).not_to equal(unloaded_filter)
+    expect(Liquid::Template.parse("{{ 'value' | reloadable_extension }}", environment:).render).to eq("reloaded: value")
+  end
+
   it "treats missing locations as empty" do
     environment = Liquid::Environment.new
     configuration = configuration_with(filters_location: "missing/filters", tags_location: "missing/tags")
@@ -149,7 +174,7 @@ RSpec.describe Liquid::Rails::ApplicationExtensions, :environment_isolation do
 
   def remove_extension_constants
     if Liquid.const_defined?(:Filters, false)
-      %i[AlphaFilter DirectFilter ExampleFilter ExtensionLoadOrder ZuluFilter].each do |name|
+      %i[AlphaFilter DirectFilter ExampleFilter ExtensionLoadOrder ReloadableFilter ZuluFilter].each do |name|
         Liquid::Filters.send(:remove_const, name) if Liquid::Filters.const_defined?(name, false)
       end
     end
