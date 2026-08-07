@@ -1,6 +1,6 @@
 require "active_support/core_ext/string/inflections"
 require "active_support/dependencies"
-require "pathname"
+Kernel.require("pathname") unless defined?(Pathname)
 
 module Liquid
   module Rails

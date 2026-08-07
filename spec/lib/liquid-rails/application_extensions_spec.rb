@@ -1,6 +1,6 @@
 require "spec_helper"
 require "fileutils"
-require "pathname"
+Kernel.require("pathname") unless defined?(Pathname)
 require "tmpdir"
 
 RSpec.describe Liquid::Rails::ApplicationExtensions, :environment_isolation do

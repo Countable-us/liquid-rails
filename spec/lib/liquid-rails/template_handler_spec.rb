@@ -392,18 +392,19 @@ RSpec.describe Liquid::Rails::TemplateHandler do
   end
 
   it "passes Action View template metadata into generated render calls" do
-    template = instance_double(
-      ActionView::Template,
-      source: "Hello",
+    metadata = {
       identifier: "app/views/pages/show.html.liquid",
       virtual_path: "pages/show",
       format: :html
+    }
+    template = instance_double(
+      ActionView::Template,
+      source: "Hello",
+      **metadata
     )
 
     compiled = described_class.call(template)
 
-    expect(compiled).to include("identifier: \"app/views/pages/show.html.liquid\"")
-    expect(compiled).to include("virtual_path: \"pages/show\"")
-    expect(compiled).to include("format: :html")
+    expect(compiled).to include(metadata.inspect)
   end
 end

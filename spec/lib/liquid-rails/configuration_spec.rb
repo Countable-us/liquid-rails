@@ -1,5 +1,5 @@
 require "spec_helper"
-require "pathname"
+Kernel.require("pathname") unless defined?(Pathname)
 
 RSpec.describe Liquid::Rails::Configuration do
   describe "application extension locations" do
